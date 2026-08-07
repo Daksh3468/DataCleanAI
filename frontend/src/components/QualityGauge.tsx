@@ -75,32 +75,23 @@ export const QualityGauge: React.FC<QualityGaugeProps> = ({ scores }) => {
         </div>
       </div>
 
-      {/* ── Score bar ── */}
-      <div className="mb-6 px-2">
-        <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
-          <div
-            className="h-full rounded-full transition-all duration-1000 ease-out"
-            style={{
-              width: `${score}%`,
-              background: `linear-gradient(90deg, #ef4444 0%, #f59e0b 35%, #3b82f6 65%, ${status.color} 100%)`,
-            }}
-          />
-        </div>
-        <div className="flex justify-between text-xs text-slate-400 font-medium mt-1.5">
-          <span>0</span>
-          <span>100</span>
-        </div>
-      </div>
 
-      {/* ── 4D Dimension Bars ── */}
+
+      {/* ── 4D Dimension Cards ── */}
       <div className="grid grid-cols-2 gap-3 pt-4 border-t border-slate-100 mt-auto">
         {dims.map(({ label, value, color }) => (
-          <div key={label} className="space-y-1.5">
-            <div className="flex items-center justify-between text-xs">
-              <span className="font-medium text-slate-500">{label}</span>
-              <span className="font-bold text-slate-800">{Number(value ?? 0).toFixed(1)}%</span>
+          <div
+            key={label}
+            className="rounded-xl p-3 space-y-2"
+            style={{ background: `${color}0f`, border: `1px solid ${color}25` }}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold" style={{ color }}>{label}</span>
+              <span className="text-xs font-extrabold" style={{ color }}>
+                {Number(value ?? 0).toFixed(1)}%
+              </span>
             </div>
-            <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+            <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: `${color}20` }}>
               <div
                 className="h-full rounded-full"
                 style={{
