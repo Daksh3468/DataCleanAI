@@ -15,16 +15,8 @@ import { Dataset } from './types';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
 export const App: React.FC = () => {
-  // Global dataset state shared across pages
-  const [currentDataset, setCurrentDataset] = useState<Dataset | null>({
-    upload_id: 'upl_982347102938',
-    filename: 'enterprise_customer_leads.csv',
-    file_size: 1458920,
-    row_count: 12500,
-    column_count: 8,
-    uploaded_at: new Date().toISOString(),
-    columns: ['id', 'full_name', 'email', 'age', 'annual_income', 'country', 'signup_date', 'is_active'],
-  });
+  // Global dataset state shared across pages — starts fresh (null)
+  const [currentDataset, setCurrentDataset] = useState<Dataset | null>(null);
 
   const handleNewUpload = () => {
     api.resetSession();

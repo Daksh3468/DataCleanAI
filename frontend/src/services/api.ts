@@ -67,44 +67,7 @@ const MOCK_PROFILE: ProfileResponse = {
   ]
 };
 
-let MOCK_RULES: CustomRule[] = [
-  {
-    id: 'rule_1',
-    name: 'Adult Age Limit',
-    column: 'age',
-    operator: '>=',
-    threshold: 18,
-    error_level: 'CRITICAL',
-    description: 'Customer age must be 18 or above for compliance',
-    is_active: true,
-    created_at: '2026-08-01T10:00:00Z',
-    violation_count: 14
-  },
-  {
-    id: 'rule_2',
-    name: 'Valid Email Format',
-    column: 'email',
-    operator: 'contains',
-    threshold: '@',
-    error_level: 'WARNING',
-    description: 'Email address must contain @ character',
-    is_active: true,
-    created_at: '2026-08-02T11:30:00Z',
-    violation_count: 112
-  },
-  {
-    id: 'rule_3',
-    name: 'Income Upper Threshold',
-    column: 'annual_income',
-    operator: '<=',
-    threshold: 500000,
-    error_level: 'INFO',
-    description: 'Flag high net worth outliers for manual verification',
-    is_active: true,
-    created_at: '2026-08-05T09:15:00Z',
-    violation_count: 8
-  }
-];
+let MOCK_RULES: CustomRule[] = [];
 
 export const api = {
   // Reset all local session caches, mock rules, and storage on new upload

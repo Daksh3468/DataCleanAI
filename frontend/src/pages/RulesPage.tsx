@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Sliders,
   Plus,
@@ -9,6 +10,7 @@ import {
   Sparkles,
   RefreshCw,
   Search,
+  Database,
 } from 'lucide-react';
 import { api } from '../services/api';
 import { CustomRule, EvaluateRulesResponse, Dataset } from '../types';
@@ -19,6 +21,7 @@ interface RulesPageProps {
 }
 
 export const RulesPage: React.FC<RulesPageProps> = ({ dataset }) => {
+  const navigate = useNavigate();
   const [rules, setRules] = useState<CustomRule[]>([]);
   const [evaluation, setEvaluation] = useState<EvaluateRulesResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -39,8 +42,33 @@ export const RulesPage: React.FC<RulesPageProps> = ({ dataset }) => {
   };
 
   useEffect(() => {
-    loadRules();
-  }, []);
+    if (dataset) {
+      loadRules();
+    } else {
+      setLoading(false);
+    }
+  }, [dataset]);
+
+  if (!dataset) {
+    return (
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-12 text-center max-w-xl mx-auto my-12 space-y-4">
+        <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto">
+          <Database className="w-6 h-6" />
+        </div>
+        <h2 className="text-xl font-bold text-slate-900">No Active Dataset Uploaded</h2>
+        <p className="text-sm text-slate-500 font-medium">
+          Please upload a CSV, Excel, or JSON file on the Upload page to build and evaluate custom validation rules.
+        </p>
+        <button
+          onClick={() => navigate('/upload')}
+          className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-xs transition-colors inline-flex items-center space-x-2 cursor-pointer"
+        >
+          <Sparkles className="w-4 h-4" />
+          <span>Go to Upload Page</span>
+        </button>
+      </div>
+    );
+  }
 
   const handleCreateRule = async (newRuleData: Omit<CustomRule, 'id'>) => {
     try {
