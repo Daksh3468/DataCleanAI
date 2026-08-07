@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Terminal, Play, Database, Table, Sparkles, RefreshCcw, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Terminal, Play, Table, RefreshCcw, AlertCircle, Clock, CheckCircle2 } from 'lucide-react';
 import { api } from '../services/api';
 import { Dataset } from '../types';
 
@@ -12,9 +12,10 @@ export const SQLConsole: React.FC<SQLConsoleProps> = ({ dataset }) => {
   const [isExecuting, setIsExecuting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [queryResult, setQueryResult] = useState<any | null>(null);
+  const [lastExecutedTime, setLastExecutedTime] = useState<string | null>(null);
 
   // Build smart preset queries dynamically from the actual uploaded columns
-  const sampleQueries = React.useMemo(() => {
+  const sampleQueries = useMemo(() => {
     const cols = dataset?.columns ?? [];
     if (cols.length === 0) {
       return [{ label: 'Sample 10 Rows', sql: 'SELECT * FROM dataset LIMIT 10;' }];
@@ -22,7 +23,7 @@ export const SQLConsole: React.FC<SQLConsoleProps> = ({ dataset }) => {
 
     const colList = cols.map((c) => `"${c}"`).join(', ');
 
-    // Heuristic: guess numeric columns (contain keywords or are positioned after first col)
+    // Heuristics for column classification
     const numericKeywords = ['age', 'income', 'salary', 'price', 'amount', 'count', 'score',
       'value', 'total', 'quantity', 'rate', 'percent', 'pct', 'revenue', 'cost', 'fee', 'weight',
       'height', 'size', 'rank', 'year', 'month', 'day', 'id'];
@@ -30,7 +31,6 @@ export const SQLConsole: React.FC<SQLConsoleProps> = ({ dataset }) => {
       numericKeywords.some((kw) => c.toLowerCase().includes(kw))
     );
 
-    // Heuristic: guess categorical / group-by columns
     const categoricalKeywords = ['country', 'city', 'state', 'region', 'category', 'type',
       'status', 'gender', 'department', 'group', 'class', 'role', 'tag', 'label', 'source',
       'segment', 'tier', 'level', 'team', 'product', 'brand', 'platform', 'channel'];
@@ -38,7 +38,6 @@ export const SQLConsole: React.FC<SQLConsoleProps> = ({ dataset }) => {
       categoricalKeywords.some((kw) => c.toLowerCase().includes(kw))
     );
 
-    // Heuristic: nullable / quality-check columns
     const nullableKeywords = ['email', 'phone', 'address', 'note', 'comment', 'description',
       'remark', 'url', 'link', 'image', 'photo', 'avatar'];
     const nullableCols = cols.filter((c) =>
@@ -47,7 +46,7 @@ export const SQLConsole: React.FC<SQLConsoleProps> = ({ dataset }) => {
 
     const presets: { label: string; sql: string }[] = [];
 
-    // 1. Always: full sample
+    // 1. Full sample
     presets.push({ label: 'Sample 10 Rows', sql: `SELECT * FROM dataset LIMIT 10;` });
 
     // 2. Row count + nulls per column
@@ -60,7 +59,7 @@ export const SQLConsole: React.FC<SQLConsoleProps> = ({ dataset }) => {
       sql: `SELECT\n  COUNT(*) AS total_rows,\n  ${nullChecks}\nFROM dataset;`,
     });
 
-    // 3. Numeric summary if we found numeric cols
+    // 3. Numeric summary if numeric cols exist
     if (numericCols.length > 0) {
       const aggParts = numericCols
         .slice(0, 3)
@@ -72,7 +71,7 @@ export const SQLConsole: React.FC<SQLConsoleProps> = ({ dataset }) => {
       });
     }
 
-    // 4. Group-by if we found categorical cols
+    // 4. Group-by if categorical cols exist
     if (catCols.length > 0) {
       const gc = catCols[0];
       presets.push({
@@ -81,7 +80,7 @@ export const SQLConsole: React.FC<SQLConsoleProps> = ({ dataset }) => {
       });
     }
 
-    // 5. Filter nulls on a nullable col if found
+    // 5. Filter nulls on nullable col
     if (nullableCols.length > 0) {
       const nc = nullableCols[0];
       presets.push({
@@ -100,18 +99,28 @@ export const SQLConsole: React.FC<SQLConsoleProps> = ({ dataset }) => {
     return presets;
   }, [dataset?.columns]);
 
-
   const handleRunQuery = async (queryToRun?: string) => {
     const activeQuery = queryToRun ?? query;
     if (!activeQuery.trim()) return;
+
     setQuery(activeQuery);
     setIsExecuting(true);
     setError(null);
+    setQueryResult(null); // Clear previous result immediately for clear dynamic feedback
+
+    const startTime = performance.now();
 
     try {
       const res = await api.executeSQL(activeQuery, dataset?.upload_id);
+      const executionMs = Math.round(performance.now() - startTime);
+
       if (res.success) {
-        setQueryResult(res);
+        setQueryResult({
+          ...res,
+          executionMs,
+          timestamp: new Date().toLocaleTimeString(),
+        });
+        setLastExecutedTime(new Date().toLocaleTimeString());
       } else {
         setError(res.error || 'Failed to execute SQL query.');
       }
@@ -123,11 +132,19 @@ export const SQLConsole: React.FC<SQLConsoleProps> = ({ dataset }) => {
   };
 
   // Auto-run initial sample query when active dataset changes
-  React.useEffect(() => {
+  useEffect(() => {
     if (dataset?.upload_id) {
       handleRunQuery('SELECT * FROM dataset LIMIT 10;');
     }
   }, [dataset?.upload_id]);
+
+  // Handle Ctrl+Enter or Cmd+Enter keyboard shortcut
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault();
+      handleRunQuery();
+    }
+  };
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-6">
@@ -141,7 +158,7 @@ export const SQLConsole: React.FC<SQLConsoleProps> = ({ dataset }) => {
             <h3 className="font-heading font-extrabold text-slate-900 text-lg flex items-center space-x-2">
               <span>DuckDB In-Memory SQL Console</span>
               <span className="text-[10px] uppercase tracking-wider font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded-md">
-                Fast DuckDB v0.9
+                Fast DuckDB
               </span>
             </h3>
             <p className="text-xs text-slate-500 font-medium">
@@ -158,7 +175,7 @@ export const SQLConsole: React.FC<SQLConsoleProps> = ({ dataset }) => {
           {isExecuting ? (
             <>
               <RefreshCcw className="w-4 h-4 animate-spin" />
-              <span>Executing Query...</span>
+              <span>Executing...</span>
             </>
           ) : (
             <>
@@ -188,11 +205,23 @@ export const SQLConsole: React.FC<SQLConsoleProps> = ({ dataset }) => {
         <textarea
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={handleKeyDown}
           rows={3}
           className="w-full p-4 font-mono text-xs text-slate-900 bg-slate-900/5 border border-slate-300 rounded-xl focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 transition-all resize-y"
-          placeholder="SELECT * FROM dataset WHERE age > 18;"
+          placeholder="SELECT * FROM dataset WHERE age > 18; (Press Ctrl+Enter to run)"
         />
+        <div className="absolute right-3 bottom-3 text-[10px] text-slate-400 font-mono pointer-events-none">
+          Ctrl + Enter to run
+        </div>
       </div>
+
+      {/* Loading Skeleton */}
+      {isExecuting && (
+        <div className="p-8 border border-slate-200 rounded-xl bg-slate-50/50 flex flex-col items-center justify-center space-y-3">
+          <RefreshCcw className="w-6 h-6 text-indigo-600 animate-spin" />
+          <span className="text-xs font-semibold text-slate-600">Executing DuckDB query in-memory...</span>
+        </div>
+      )}
 
       {/* Error Notice */}
       {error && (
@@ -203,17 +232,23 @@ export const SQLConsole: React.FC<SQLConsoleProps> = ({ dataset }) => {
       )}
 
       {/* Execution Results Grid */}
-      {queryResult && (
+      {queryResult && !isExecuting && (
         <div className="space-y-3 pt-2">
-          <div className="flex justify-between items-center text-xs font-medium text-slate-500">
-            <span className="flex items-center space-x-1.5 font-bold text-slate-800">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-medium text-slate-500">
+            <span className="flex items-center space-x-2 font-bold text-slate-800">
               <Table className="w-4 h-4 text-indigo-600" />
               <span>Query Output ({queryResult.row_count} rows returned)</span>
+              <span className="inline-flex items-center space-x-1 text-[11px] font-normal text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                <CheckCircle2 className="w-3 h-3" />
+                <span>Updated at {queryResult.timestamp}</span>
+              </span>
             </span>
-            <span className="font-mono text-[11px] text-slate-400">Engine: {queryResult.engine}</span>
+            <span className="font-mono text-[11px] text-slate-400">
+              {queryResult.executionMs}ms • Engine: {queryResult.engine}
+            </span>
           </div>
 
-          <div className="data-table-container max-h-72 overflow-y-auto">
+          <div className="data-table-container max-h-80 overflow-y-auto">
             <table className="data-table">
               <thead>
                 <tr>
