@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/logo.jpg" alt="DataCleanAI Logo" width="340" />
+<img src="assets/logo.jpg" alt="DataCleanAI Logo" width="100%" />
 
 ### AI & Machine Learning-Powered Automated Data Quality Assessment & Cleaning Platform
 
@@ -10,8 +10,6 @@
 [![Scikit-Learn](https://img.shields.io/badge/Scikit--Learn-1.3.0+-F7931E.svg?style=for-the-badge&logo=scikit-learn)](https://scikit-learn.org/)
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB.svg?style=for-the-badge&logo=python)](https://www.python.org/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?style=for-the-badge&logo=docker)](https://www.docker.com/)
-
-**[Live Demo](#quick-start) · [API Docs](http://localhost:8000/docs) · [Report Bug](https://github.com/Daksh3468/DataCleanAI/issues)**
 
 </div>
 
