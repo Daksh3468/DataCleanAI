@@ -16,6 +16,13 @@ except ImportError:
     HAS_DUCKDB = False
 
 
+def _clean_df_records(df_in: pd.DataFrame, limit: int = 500) -> List[Dict[str, Any]]:
+    """Converts DataFrame to JSON-compliant list of dicts, replacing NaN/Inf with None."""
+    subset = df_in.head(limit)
+    cleaned = subset.astype(object).where(pd.notnull(subset), None)
+    return cleaned.to_dict(orient="records")
+
+
 # -------------------------------------------------------------------
 # 1. DuckDB In-Memory SQL Query Engine
 # -------------------------------------------------------------------
@@ -40,8 +47,7 @@ def execute_sql_query(df: pd.DataFrame, query: str) -> Dict[str, Any]:
 
             # Format result
             columns = result_df.columns.tolist()
-            # Convert NaN to None for JSON compatibility
-            result_data = result_df.where(pd.notnull(result_df), None).head(500).to_dict(orient="records")
+            result_data = _clean_df_records(result_df, 500)
 
             return {
                 "success": True,
@@ -69,7 +75,7 @@ def execute_sql_query(df: pd.DataFrame, query: str) -> Dict[str, Any]:
                 "query": clean_query,
                 "row_count": len(result_df),
                 "columns": result_df.columns.tolist(),
-                "data": result_df.where(pd.notnull(result_df), None).head(100).to_dict(orient="records"),
+                "data": _clean_df_records(result_df, 100),
                 "message": f"Executed query fallback, returned {len(result_df)} rows."
             }
         except Exception as e:
