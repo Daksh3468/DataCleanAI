@@ -162,12 +162,13 @@ export const Footer: React.FC = () => {
               <span>for Enterprise Data Analytics</span>
             </span>
             <a
-              href="https://github.com"
+              href="https://github.com/Daksh3468/DataCleanAI"
               target="_blank"
               rel="noreferrer"
-              className="hover:text-slate-300 transition-colors"
+              className="flex items-center space-x-1.5 hover:text-slate-300 transition-colors"
             >
               <Github className="w-4 h-4" />
+              <span>GitHub</span>
             </a>
           </div>
         </div>
