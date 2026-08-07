@@ -4,244 +4,160 @@ import { QualityScoreResponse } from '../types';
 
 interface QualityGaugeProps {
   scores?: QualityScoreResponse | null;
-  size?: number;
 }
 
-// Helper: polar → cartesian for SVG arc
-function polarToCartesian(cx: number, cy: number, r: number, angleDeg: number) {
-  const rad = ((angleDeg - 90) * Math.PI) / 180;
-  return {
-    x: cx + r * Math.cos(rad),
-    y: cy + r * Math.sin(rad),
-  };
-}
-
-// Describe an SVG arc path from startAngle to endAngle (degrees)
-function describeArc(cx: number, cy: number, r: number, startAngle: number, endAngle: number) {
-  const start = polarToCartesian(cx, cy, r, endAngle);
-  const end = polarToCartesian(cx, cy, r, startAngle);
-  const largeArc = endAngle - startAngle <= 180 ? '0' : '1';
-  return `M ${start.x} ${start.y} A ${r} ${r} 0 ${largeArc} 0 ${end.x} ${end.y}`;
-}
-
-export const QualityGauge: React.FC<QualityGaugeProps> = ({ scores, size = 240 }) => {
+export const QualityGauge: React.FC<QualityGaugeProps> = ({ scores }) => {
   const overall = scores?.overall_score ?? 0;
-  const clampedScore = Math.min(100, Math.max(0, overall));
+  const score = Math.min(100, Math.max(0, overall));
 
-  // Status badge
-  let statusText = 'EXCELLENT';
-  let statusColor = '#059669';
-  let statusBg = '#d1fae5';
-  let statusBorder = '#6ee7b7';
-
-  if (clampedScore < 50) {
-    statusText = 'POOR';
-    statusColor = '#dc2626';
-    statusBg = '#fee2e2';
-    statusBorder = '#fca5a5';
-  } else if (clampedScore < 70) {
-    statusText = 'FAIR';
-    statusColor = '#d97706';
-    statusBg = '#fef3c7';
-    statusBorder = '#fcd34d';
-  } else if (clampedScore < 85) {
-    statusText = 'GOOD';
-    statusColor = '#2563eb';
-    statusBg = '#dbeafe';
-    statusBorder = '#93c5fd';
-  }
-
-  // Gauge arc params
-  // The gauge sweeps from -210° to 30° (i.e. 240° sweep), centered at bottom
-  const START_ANGLE = 135;  // degrees (7 o'clock)
-  const END_ANGLE = 405;    // degrees = 45° (5 o'clock), 270° sweep
-  const SWEEP = END_ANGLE - START_ANGLE; // 270°
-
-  const cx = size / 2;
-  const cy = size / 2;
-  const strokeWidth = 18;
-  const r = (size - strokeWidth * 2 - 10) / 2;
-
-  const scoreAngle = START_ANGLE + (clampedScore / 100) * SWEEP;
-
-  // Score color transition: red → amber → green
-  const getScoreColor = (s: number) => {
-    if (s < 50) return '#ef4444';
-    if (s < 70) return '#f59e0b';
-    if (s < 85) return '#3b82f6';
-    return '#10b981';
+  // Status config
+  const getStatus = (s: number) => {
+    if (s >= 90) return { label: 'Excellent', color: '#10b981', bg: '#ecfdf5', border: '#a7f3d0', track: '#d1fae5' };
+    if (s >= 75) return { label: 'Good',      color: '#3b82f6', bg: '#eff6ff', border: '#bfdbfe', track: '#dbeafe' };
+    if (s >= 50) return { label: 'Fair',      color: '#f59e0b', bg: '#fffbeb', border: '#fde68a', track: '#fef3c7' };
+    return             { label: 'Poor',       color: '#ef4444', bg: '#fef2f2', border: '#fecaca', track: '#fee2e2' };
   };
 
-  const arcColor = getScoreColor(clampedScore);
+  const status = getStatus(score);
 
-  // Needle tip position
-  const needleTip = polarToCartesian(cx, cy, r - 4, scoreAngle);
-  const needleBase1 = polarToCartesian(cx, cy, 8, scoreAngle + 90);
-  const needleBase2 = polarToCartesian(cx, cy, 8, scoreAngle - 90);
+  // ── SVG half-circle (180° arc) ──────────────────────────────────
+  const W = 260;
+  const H = 160;          // just the top half + breathing room
+  const cx = W / 2;
+  const cy = H - 20;      // pivot point near bottom center
+  const R = 100;          // arc radius
+  const SW = 20;          // stroke width
 
-  const dimScores = scores?.dimension_scores || {
-    completeness: 0,
-    accuracy: 0,
-    consistency: 0,
-    timeliness: 0,
-  };
+  // Full half-circle goes from 180° to 0° (left → right across top)
+  // In SVG coords: start = left of center, end = right of center
+  const startX = cx - R;
+  const startY = cy;
+  const endX   = cx + R;
+  const endY   = cy;
+
+  // Progress arc: fraction of 180°
+  const angle = 180 - (score / 100) * 180;          // 180° (left) → 0° (right)
+  const rad   = (angle * Math.PI) / 180;
+  const dotX  = cx + R * Math.cos(rad);
+  const dotY  = cy - R * Math.sin(rad);
+
+  // Gradient stops based on score
+  const gradId = 'scoreArcGrad';
 
   const dims = [
-    { label: 'Completeness', value: dimScores.completeness, color: '#6366f1' },
-    { label: 'Accuracy',     value: dimScores.accuracy,     color: '#10b981' },
-    { label: 'Consistency',  value: dimScores.consistency,  color: '#0ea5e9' },
-    { label: 'Timeliness',   value: dimScores.timeliness,   color: '#8b5cf6' },
+    { label: 'Completeness', value: scores?.dimension_scores?.completeness ?? 0, color: '#6366f1' },
+    { label: 'Accuracy',     value: scores?.dimension_scores?.accuracy     ?? 0, color: '#10b981' },
+    { label: 'Consistency',  value: scores?.dimension_scores?.consistency  ?? 0, color: '#0ea5e9' },
+    { label: 'Timeliness',   value: scores?.dimension_scores?.timeliness   ?? 0, color: '#8b5cf6' },
   ];
 
-  const svgH = size * 0.72; // only need ~72% of full circle height for 270° sweep
-
   return (
-    <div className="bg-white border border-slate-200 p-6 rounded-2xl flex flex-col items-center h-full relative overflow-hidden shadow-xs">
-      {/* Header */}
+    <div className="bg-white border border-slate-200 rounded-2xl shadow-xs flex flex-col items-center p-6 h-full">
+
+      {/* ── Header ── */}
       <div className="w-full flex items-center justify-between mb-4">
-        <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center space-x-2">
-          <ShieldCheck className="w-4 h-4 text-indigo-600" />
-          <span>Overall Data Health Score</span>
+        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+          <ShieldCheck className="w-4 h-4 text-indigo-500" />
+          Overall Health Score
         </h3>
         <span
-          className="text-xs font-bold px-3 py-1 rounded-full uppercase border"
-          style={{ color: statusColor, background: statusBg, borderColor: statusBorder }}
+          className="text-xs font-bold px-3 py-1 rounded-full border"
+          style={{ color: status.color, background: status.bg, borderColor: status.border }}
         >
-          {scores?.status || statusText}
+          {scores?.status || status.label}
         </span>
       </div>
 
-      {/* SVG Gauge */}
-      <div className="relative flex items-center justify-center w-full">
-        <svg
-          width={size}
-          height={svgH}
-          viewBox={`0 0 ${size} ${size}`}
-          style={{ overflow: 'visible' }}
-        >
+      {/* ── Arc Gauge ── */}
+      <div className="relative flex items-end justify-center" style={{ width: W, height: H }}>
+        <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} overflow="visible">
           <defs>
-            {/* Background track gradient */}
-            <linearGradient id="trackGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#f1f5f9" />
-              <stop offset="100%" stopColor="#e2e8f0" />
-            </linearGradient>
-            {/* Progress arc gradient */}
-            <linearGradient id="scoreGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#ef4444" />
-              <stop offset="40%" stopColor="#f59e0b" />
-              <stop offset="70%" stopColor="#3b82f6" />
+            <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%"   stopColor="#ef4444" />
+              <stop offset="35%"  stopColor="#f59e0b" />
+              <stop offset="65%"  stopColor="#3b82f6" />
               <stop offset="100%" stopColor="#10b981" />
             </linearGradient>
-            {/* Glow filter */}
-            <filter id="gaugeGlow" x="-20%" y="-20%" width="140%" height="140%">
-              <feGaussianBlur stdDeviation="3" result="coloredBlur" />
-              <feMerge>
-                <feMergeNode in="coloredBlur" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-            {/* Drop shadow for needle */}
-            <filter id="needleShadow" x="-50%" y="-50%" width="200%" height="200%">
-              <feDropShadow dx="0" dy="1" stdDeviation="2" floodColor="#00000030" />
+            <filter id="dotGlow" x="-100%" y="-100%" width="300%" height="300%">
+              <feGaussianBlur stdDeviation="4" result="blur" />
+              <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
             </filter>
           </defs>
 
-          {/* Tick marks */}
-          {[0, 25, 50, 75, 100].map((tick) => {
-            const tickAngle = START_ANGLE + (tick / 100) * SWEEP;
-            const inner = polarToCartesian(cx, cy, r - strokeWidth / 2 - 4, tickAngle);
-            const outer = polarToCartesian(cx, cy, r + strokeWidth / 2 + 2, tickAngle);
-            const label = polarToCartesian(cx, cy, r + strokeWidth / 2 + 14, tickAngle);
-            return (
-              <g key={tick}>
-                <line
-                  x1={inner.x} y1={inner.y}
-                  x2={outer.x} y2={outer.y}
-                  stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round"
-                />
-                <text
-                  x={label.x} y={label.y}
-                  textAnchor="middle" dominantBaseline="middle"
-                  fontSize="9" fill="#94a3b8" fontWeight="600"
-                >
-                  {tick}
-                </text>
-              </g>
-            );
-          })}
-
-          {/* Background Track */}
+          {/* Background track */}
           <path
-            d={describeArc(cx, cy, r, START_ANGLE, END_ANGLE)}
+            d={`M ${startX} ${startY} A ${R} ${R} 0 0 1 ${endX} ${endY}`}
             fill="none"
-            stroke="#e2e8f0"
-            strokeWidth={strokeWidth}
+            stroke="#f1f5f9"
+            strokeWidth={SW}
             strokeLinecap="round"
           />
 
-          {/* Colored Progress Arc */}
-          {clampedScore > 0 && (
+          {/* Colored progress arc */}
+          {score > 0 && (
             <path
-              d={describeArc(cx, cy, r, START_ANGLE, scoreAngle)}
+              d={`M ${startX} ${startY} A ${R} ${R} 0 0 1 ${dotX} ${dotY}`}
               fill="none"
-              stroke="url(#scoreGrad)"
-              strokeWidth={strokeWidth}
+              stroke={`url(#${gradId})`}
+              strokeWidth={SW}
               strokeLinecap="round"
-              filter="url(#gaugeGlow)"
-              className="transition-all duration-1000 ease-out"
+              style={{ transition: 'all 1s ease-out' }}
             />
           )}
 
-          {/* Needle */}
-          <polygon
-            points={`${needleTip.x},${needleTip.y} ${needleBase1.x},${needleBase1.y} ${needleBase2.x},${needleBase2.y}`}
-            fill={arcColor}
-            filter="url(#needleShadow)"
-            className="transition-all duration-1000 ease-out"
-          />
+          {/* Glowing dot indicator at arc tip */}
+          {score > 0 && (
+            <>
+              <circle cx={dotX} cy={dotY} r={14} fill={status.color} opacity="0.15" filter="url(#dotGlow)" />
+              <circle cx={dotX} cy={dotY} r={8}  fill="white" stroke={status.color} strokeWidth={3} />
+              <circle cx={dotX} cy={dotY} r={3.5} fill={status.color} />
+            </>
+          )}
 
-          {/* Center hub */}
-          <circle cx={cx} cy={cy} r={10} fill="white" stroke="#e2e8f0" strokeWidth="2" />
-          <circle cx={cx} cy={cy} r={5} fill={arcColor} />
-
-          {/* Score text – centered inside gauge */}
+          {/* Score number */}
           <text
-            x={cx}
-            y={cy + 38}
+            x={cx} y={cy - 10}
             textAnchor="middle"
-            fontSize="36"
+            fontSize="42"
             fontWeight="800"
             fill="#0f172a"
             fontFamily="Inter, system-ui, sans-serif"
           >
-            {clampedScore.toFixed(1)}
+            {score.toFixed(1)}
           </text>
           <text
-            x={cx}
-            y={cy + 56}
+            x={cx} y={cy + 14}
             textAnchor="middle"
             fontSize="11"
-            fill="#94a3b8"
             fontWeight="600"
+            fill="#94a3b8"
             fontFamily="Inter, system-ui, sans-serif"
           >
             OUT OF 100
           </text>
+
+          {/* Min / Max labels */}
+          <text x={startX - 4} y={cy + 18} textAnchor="end"   fontSize="10" fill="#cbd5e1" fontWeight="600">0</text>
+          <text x={endX   + 4} y={cy + 18} textAnchor="start" fontSize="10" fill="#cbd5e1" fontWeight="600">100</text>
         </svg>
       </div>
 
-      {/* 4D Dimension Mini Bars */}
-      <div className="w-full grid grid-cols-2 gap-3 mt-2 pt-4 border-t border-slate-100">
+      {/* ── 4D Dimension Bars ── */}
+      <div className="w-full grid grid-cols-2 gap-3 mt-4 pt-4 border-t border-slate-100">
         {dims.map(({ label, value, color }) => (
-          <div key={label} className="bg-slate-50 border border-slate-200 p-2.5 rounded-xl">
-            <div className="flex justify-between text-xs text-slate-600 mb-1.5">
-              <span className="font-medium">{label}</span>
-              <span className="font-bold text-slate-900">{Number(value ?? 0).toFixed(1)}%</span>
+          <div key={label} className="space-y-1.5">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-medium text-slate-600">{label}</span>
+              <span className="font-bold text-slate-800">{Number(value ?? 0).toFixed(1)}%</span>
             </div>
-            <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
+            <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
               <div
-                className="h-full rounded-full transition-all duration-700"
-                style={{ width: `${Math.min(100, value ?? 0)}%`, background: color }}
+                className="h-full rounded-full"
+                style={{
+                  width: `${Math.min(100, value ?? 0)}%`,
+                  background: color,
+                  transition: 'width 0.8s ease-out',
+                }}
               />
             </div>
           </div>
