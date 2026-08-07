@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Terminal, Play, Table, RefreshCcw, AlertCircle, Clock, CheckCircle2 } from 'lucide-react';
+import { Terminal, Play, Table, RefreshCcw, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { api } from '../services/api';
 import { Dataset } from '../types';
 
@@ -14,90 +14,139 @@ export const SQLConsole: React.FC<SQLConsoleProps> = ({ dataset }) => {
   const [queryResult, setQueryResult] = useState<any | null>(null);
   const [lastExecutedTime, setLastExecutedTime] = useState<string | null>(null);
 
-  // Build smart preset queries dynamically from the actual uploaded columns
+  // Build smart preset queries dynamically from the actual uploaded dataset structure and sample rows
   const sampleQueries = useMemo(() => {
     const cols = dataset?.columns ?? [];
+    const sampleRows = dataset?.sample_rows ?? [];
+
     if (cols.length === 0) {
       return [{ label: 'Sample 10 Rows', sql: 'SELECT * FROM dataset LIMIT 10;' }];
     }
 
-    const colList = cols.map((c) => `"${c}"`).join(', ');
+    // Classify columns dynamically based on actual runtime sample row values & names
+    const numericCols: string[] = [];
+    const categoricalCols: string[] = [];
+    const nullableCols: string[] = [];
+    const idCols: string[] = [];
 
-    // Heuristics for column classification
-    const numericKeywords = ['age', 'income', 'salary', 'price', 'amount', 'count', 'score',
-      'value', 'total', 'quantity', 'rate', 'percent', 'pct', 'revenue', 'cost', 'fee', 'weight',
-      'height', 'size', 'rank', 'year', 'month', 'day', 'id'];
-    const numericCols = cols.filter((c) =>
-      numericKeywords.some((kw) => c.toLowerCase().includes(kw))
-    );
+    cols.forEach((col) => {
+      const lower = col.toLowerCase();
+      let numericCount = 0;
+      let nullCount = 0;
 
-    const categoricalKeywords = ['country', 'city', 'state', 'region', 'category', 'type',
-      'status', 'gender', 'department', 'group', 'class', 'role', 'tag', 'label', 'source',
-      'segment', 'tier', 'level', 'team', 'product', 'brand', 'platform', 'channel'];
-    const catCols = cols.filter((c) =>
-      categoricalKeywords.some((kw) => c.toLowerCase().includes(kw))
-    );
+      sampleRows.forEach((row) => {
+        const val = row[col];
+        if (val === null || val === undefined || val === '') {
+          nullCount++;
+        } else {
+          if (typeof val === 'number' || (!isNaN(Number(val)) && typeof val !== 'boolean')) {
+            numericCount++;
+          }
+        }
+      });
 
-    const nullableKeywords = ['email', 'phone', 'address', 'note', 'comment', 'description',
-      'remark', 'url', 'link', 'image', 'photo', 'avatar'];
-    const nullableCols = cols.filter((c) =>
-      nullableKeywords.some((kw) => c.toLowerCase().includes(kw))
-    );
+      const validCount = sampleRows.length - nullCount;
+      const isNumeric = validCount > 0 && numericCount / validCount > 0.7;
+
+      if (lower.includes('id') || lower.endsWith('_no') || lower.endsWith('_code')) {
+        idCols.push(col);
+      } else if (isNumeric) {
+        numericCols.push(col);
+      } else {
+        categoricalCols.push(col);
+      }
+
+      if (nullCount > 0 || lower.includes('email') || lower.includes('phone') || lower.includes('address')) {
+        nullableCols.push(col);
+      }
+    });
+
+    // Fallback keyword classification if sampleRows is unavailable
+    if (numericCols.length === 0 && categoricalCols.length === 0) {
+      cols.forEach((col) => {
+        const l = col.toLowerCase();
+        if (['age', 'income', 'salary', 'price', 'amount', 'count', 'score', 'total', 'loss', 'lat', 'lon', 'num'].some(kw => l.includes(kw))) {
+          numericCols.push(col);
+        } else if (l.includes('id')) {
+          idCols.push(col);
+        } else {
+          categoricalCols.push(col);
+        }
+      });
+    }
 
     const presets: { label: string; sql: string }[] = [];
 
-    // 1. Full sample
+    // 1. Always: Full 10 sample rows
     presets.push({ label: 'Sample 10 Rows', sql: `SELECT * FROM dataset LIMIT 10;` });
 
-    // 2. Row count + nulls per column
-    const nullChecks = cols
-      .slice(0, 5)
+    // 2. Dynamic column null count profile
+    const checkCols = cols.slice(0, 5);
+    const nullChecks = checkCols
       .map((c) => `COUNT(*) - COUNT("${c}") AS "${c}_nulls"`)
       .join(',\n  ');
     presets.push({
-      label: 'Null Count per Column',
+      label: 'Column Null Profile',
       sql: `SELECT\n  COUNT(*) AS total_rows,\n  ${nullChecks}\nFROM dataset;`,
     });
 
-    // 3. Numeric summary if numeric cols exist
+    // 3. Dynamic group-by on primary categorical column
+    const primaryCat = categoricalCols[0] || cols[1] || cols[0];
+    if (primaryCat) {
+      presets.push({
+        label: `Group by ${primaryCat}`,
+        sql: `SELECT "${primaryCat}", COUNT(*) AS total\nFROM dataset\nGROUP BY "${primaryCat}"\nORDER BY total DESC\nLIMIT 15;`,
+      });
+    }
+
+    // 4. Dynamic numeric aggregation summary
     if (numericCols.length > 0) {
-      const aggParts = numericCols
-        .slice(0, 3)
-        .map((c) => `AVG("${c}") AS avg_${c}, MIN("${c}") AS min_${c}, MAX("${c}") AS max_${c}`)
+      const topNumCols = numericCols.slice(0, 3);
+      const aggParts = topNumCols
+        .map((c) => `ROUND(AVG("${c}"), 2) AS avg_${c}, MIN("${c}") AS min_${c}, MAX("${c}") AS max_${c}`)
         .join(',\n  ');
       presets.push({
-        label: 'Numeric Summary',
-        sql: `SELECT\n  COUNT(*) AS total_rows,\n  ${aggParts}\nFROM dataset;`,
+        label: `Numeric Stats (${topNumCols.slice(0, 2).join(', ')})`,
+        sql: `SELECT\n  COUNT(*) AS row_count,\n  ${aggParts}\nFROM dataset;`,
       });
-    }
 
-    // 4. Group-by if categorical cols exist
-    if (catCols.length > 0) {
-      const gc = catCols[0];
+      // 5. Dynamic top high-value records metric
+      const topMetric = numericCols[0];
       presets.push({
-        label: `Group by ${gc}`,
-        sql: `SELECT "${gc}", COUNT(*) AS count\nFROM dataset\nGROUP BY "${gc}"\nORDER BY count DESC\nLIMIT 20;`,
+        label: `Top High ${topMetric}`,
+        sql: `SELECT * FROM dataset\nORDER BY "${topMetric}" DESC\nLIMIT 10;`,
       });
     }
 
-    // 5. Filter nulls on nullable col
-    if (nullableCols.length > 0) {
-      const nc = nullableCols[0];
+    // 6. Dynamic cross-tab / multi group-by if 2+ categorical columns exist
+    if (categoricalCols.length >= 2) {
+      const cat1 = categoricalCols[0];
+      const cat2 = categoricalCols[1];
       presets.push({
-        label: `Filter Missing ${nc}`,
-        sql: `SELECT ${colList}\nFROM dataset\nWHERE "${nc}" IS NULL OR TRIM("${nc}") = ''\nLIMIT 50;`,
+        label: `${cat1} vs ${cat2}`,
+        sql: `SELECT "${cat1}", "${cat2}", COUNT(*) AS count\nFROM dataset\nGROUP BY "${cat1}", "${cat2}"\nORDER BY count DESC\nLIMIT 20;`,
       });
     }
 
-    // 6. Duplicate detection on first 2 cols
-    const dupCols = cols.slice(0, Math.min(2, cols.length)).map((c) => `"${c}"`).join(', ');
+    // 7. Dynamic filter missing values
+    const nullTarget = nullableCols[0] || cols[0];
+    if (nullTarget) {
+      presets.push({
+        label: `Filter Missing ${nullTarget}`,
+        sql: `SELECT * FROM dataset\nWHERE "${nullTarget}" IS NULL OR CAST("${nullTarget}" AS VARCHAR) = ''\nLIMIT 50;`,
+      });
+    }
+
+    // 8. Dynamic duplicate detection on ID / primary columns
+    const dupTarget = idCols.length > 0 ? [idCols[0]] : cols.slice(0, Math.min(2, cols.length));
+    const dupColsStr = dupTarget.map((c) => `"${c}"`).join(', ');
     presets.push({
-      label: 'Find Duplicates',
-      sql: `SELECT ${dupCols}, COUNT(*) AS occurrences\nFROM dataset\nGROUP BY ${dupCols}\nHAVING COUNT(*) > 1\nORDER BY occurrences DESC;`,
+      label: `Find Duplicate ${dupTarget.join(' + ')}`,
+      sql: `SELECT ${dupColsStr}, COUNT(*) AS occurrences\nFROM dataset\nGROUP BY ${dupColsStr}\nHAVING COUNT(*) > 1\nORDER BY occurrences DESC;`,
     });
 
     return presets;
-  }, [dataset?.columns]);
+  }, [dataset?.columns, dataset?.sample_rows]);
 
   const handleRunQuery = async (queryToRun?: string) => {
     const activeQuery = queryToRun ?? query;
@@ -186,9 +235,9 @@ export const SQLConsole: React.FC<SQLConsoleProps> = ({ dataset }) => {
         </button>
       </div>
 
-      {/* Preset Query Chips */}
+      {/* Dynamic Preset Query Chips */}
       <div className="flex items-center space-x-2 overflow-x-auto pb-1 scrollbar-none">
-        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider shrink-0">Presets:</span>
+        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider shrink-0">Dynamic Presets:</span>
         {sampleQueries.map((item, i) => (
           <button
             key={i}
