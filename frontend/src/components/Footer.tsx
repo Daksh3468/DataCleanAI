@@ -73,11 +73,7 @@ export const Footer: React.FC = () => {
                   Executive Reports
                 </NavLink>
               </li>
-              <li>
-                <NavLink to="/history" className="hover:text-white transition-colors">
-                  Upload Audit History
-                </NavLink>
-              </li>
+
             </ul>
           </div>
 

@@ -8,7 +8,7 @@ import {
   Sliders,
   Sparkles,
   FileCheck,
-  History,
+
   FileText,
   Activity,
 } from 'lucide-react';
@@ -36,7 +36,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentDataset, onNewUpload }) =
     { to: '/rules', label: 'Custom Rules', icon: Sliders },
     { to: '/clean', label: 'Clean Workbench', icon: Sparkles },
     { to: '/report', label: 'Reports', icon: FileCheck },
-    { to: '/history', label: 'History', icon: History },
+
   ];
 
   return (

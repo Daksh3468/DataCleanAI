@@ -121,10 +121,3 @@ def test_upload_and_pipeline():
         res_export = client.get(f"/api/dataset/{upload_id}/export/{fmt}")
         assert res_export.status_code == 200
         assert len(res_export.content) > 0
-
-    # 7. Test GET /api/history
-    res_history = client.get("/api/history")
-    assert res_history.status_code == 200
-    history_data = res_history.json()
-    assert len(history_data["uploads"]) > 0
-    assert len(history_data["cleaning_logs"]) > 0

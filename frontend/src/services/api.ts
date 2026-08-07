@@ -7,7 +7,6 @@ import {
   EvaluateRulesResponse,
   CleaningOptions,
   CleanResponse,
-  HistoryItem,
 } from '../types';
 
 const API_BASE_URL = 'http://localhost:8000/api';
@@ -267,36 +266,6 @@ export const api = {
   // 6. Export Links
   getExportUrl: (format: 'csv' | 'xlsx' | 'html', uploadId?: string): string => {
     return `${API_BASE_URL}/export/${format}?upload_id=${uploadId || MOCK_DATASET_ID}`;
-  },
-
-  // 7. Audit Log / Upload History
-  getHistory: async (): Promise<HistoryItem[]> => {
-    try {
-      let response = await apiClient.get('/history/uploads');
-      let rawItems = response.data;
-      if (!Array.isArray(rawItems) && rawItems?.uploads) {
-        rawItems = rawItems.uploads;
-      }
-      if (Array.isArray(rawItems)) {
-        return rawItems.map((u: any) => ({
-          upload_id: String(u.upload_id || u.id || `upl_${Date.now()}`),
-          filename: u.filename || 'dataset.csv',
-          file_size: Number(u.file_size || 0),
-          row_count: Number(u.row_count || 0),
-          column_count: Number(u.column_count || 0),
-          uploaded_at: u.uploaded_at || new Date().toISOString(),
-          quality_score: typeof u.quality_score === 'number' ? u.quality_score : 85.0,
-          status: u.status || (u.logs_count > 0 ? 'CLEANED' : 'PROFILED'),
-        }));
-      }
-      return [];
-    } catch (err) {
-      return [
-        { upload_id: 'upl_982347102938', filename: 'enterprise_customer_leads.csv', file_size: 1458920, row_count: 12500, column_count: 8, uploaded_at: '2026-08-07T14:30:00Z', quality_score: 96.8, status: 'CLEANED' },
-        { upload_id: 'upl_882312349011', filename: 'q2_financial_transactions.xlsx', file_size: 4892010, row_count: 45000, column_count: 14, uploaded_at: '2026-08-06T09:15:00Z', quality_score: 84.2, status: 'PROFILED' },
-        { upload_id: 'upl_771920394812', filename: 'healthcare_patient_vitals.json', file_size: 2190800, row_count: 8900, column_count: 18, uploaded_at: '2026-08-05T16:45:00Z', quality_score: 62.1, status: 'PROFILED' },
-      ];
-    }
   },
 
   // 8. Machine Learning & AI API Endpoints

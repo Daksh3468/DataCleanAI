@@ -180,14 +180,3 @@ export interface CleanResponse {
   };
 }
 
-export interface HistoryItem {
-  upload_id: string;
-  filename: string;
-  file_size: number;
-  row_count: number;
-  column_count: number;
-  uploaded_at: string;
-  quality_score: number;
-  status: 'PROFILED' | 'CLEANED' | 'FAILED' | 'PENDING';
-  download_url?: string;
-}

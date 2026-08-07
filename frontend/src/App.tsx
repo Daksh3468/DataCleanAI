@@ -7,7 +7,7 @@ import { ProfilePage } from './pages/ProfilePage';
 import { RulesPage } from './pages/RulesPage';
 import { CleanPage } from './pages/CleanPage';
 import { ReportPage } from './pages/ReportPage';
-import { HistoryPage } from './pages/HistoryPage';
+
 import { Dataset } from './types';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
@@ -56,10 +56,7 @@ export const App: React.FC = () => {
                 path="/report"
                 element={<ReportPage dataset={currentDataset} />}
               />
-              <Route
-                path="/history"
-                element={<HistoryPage onSelectDataset={(ds) => setCurrentDataset(ds)} />}
-              />
+
               <Route path="*" element={<Navigate to="/upload" replace />} />
             </Routes>
           </ErrorBoundary>

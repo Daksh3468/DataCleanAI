@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.database.connection import init_db
-from app.api import upload, profile, quality, rules, clean, export, history, ai, analytics
+from app.api import upload, profile, quality, rules, clean, export, ai, analytics
 
 
 @asynccontextmanager
@@ -54,7 +54,6 @@ app.include_router(quality.router, prefix="/api")
 app.include_router(rules.router, prefix="/api")
 app.include_router(clean.router, prefix="/api")
 app.include_router(export.router, prefix="/api")
-app.include_router(history.router, prefix="/api")
 app.include_router(ai.router, prefix="/api")
 app.include_router(analytics.router, prefix="/api")
 
