@@ -120,12 +120,10 @@ def _build_export_response(
             )
         else:
             pdf_bytes = generate_pdf_report(html_content)
-            media_type = "application/pdf" if pdf_bytes.startswith(b"%PDF") else "text/html"
-            ext = "pdf" if media_type == "application/pdf" else "html"
             return Response(
                 content=pdf_bytes,
-                media_type=media_type,
-                headers={"Content-Disposition": f'attachment; filename="{base_name}_quality_report.{ext}"'}
+                media_type="application/pdf",
+                headers={"Content-Disposition": f'attachment; filename="{base_name}_quality_report.pdf"'}
             )
 
 
