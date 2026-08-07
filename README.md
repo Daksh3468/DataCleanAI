@@ -102,30 +102,7 @@ npm run dev
 
 ---
 
-## 📸 Workflow
 
-```
-┌──────────────────────────────────────────────────────────────────────────┐
-│ 1. UPLOAD    →  2. PROFILE   →  3. RULES    →  4. CLEAN    →  5. EXPORT │
-│                                                                          │
-│ Drop CSV       4D Quality      Custom           ML KNN         CSV        │
-│ Excel XLSX     Score Card      Business         MICE           Excel      │
-│ JSON           Column Stats    Constraints      Outlier Cap    HTML Report│
-│                Missing Map     Regex Rules      Dedup          Audit Log  │
-└──────────────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## ⚡ Performance Benchmarks
-
-| Dataset | Rows | Columns | Profile Time | Memory |
-|---|---|---|---|---|
-| Titanic Tier | 1,000 | 10 | ~0.05s | 2 MB |
-| Retail Tier | 50,000 | 15 | ~0.3s | 45 MB |
-| Enterprise Tier | 1,000,000 | 12 | ~4.2s | 890 MB |
-
----
 
 ## 🧪 Testing
 
