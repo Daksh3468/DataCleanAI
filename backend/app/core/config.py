@@ -11,7 +11,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 # Application details
 PROJECT_NAME: str = "DataCleanAI API"
-VERSION: str = "1.0.0"
 API_PREFIX: str = "/api"
 
 # CORS configuration: Allow localhost dev servers (5173, 3000) and configurable env list
@@ -86,7 +85,6 @@ DATA_STORE_DIR.mkdir(parents=True, exist_ok=True)
 
 class Settings:
     PROJECT_NAME: str = PROJECT_NAME
-    VERSION: str = VERSION
     API_PREFIX: str = API_PREFIX
     CORS_ORIGINS: List[str] = CORS_ORIGINS
     MAX_UPLOAD_SIZE: int = MAX_UPLOAD_SIZE

@@ -24,7 +24,6 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="DataCleanAI API",
     description="Production Data Quality Assessment & Cleaning REST API Engine",
-    version="2.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
     lifespan=lifespan,
@@ -63,8 +62,6 @@ def root():
     return {
         "status": "online",
         "service": "DataCleanAI API",
-        "app": "DataCleanAI API",
-        "version": "2.0.0",
         "docs": "/docs",
     }
 
