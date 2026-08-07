@@ -161,7 +161,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ dataset }) => {
             value={`${scores?.dimension_scores.completeness.toFixed(1)}%`}
             subtitle={`${scores?.missing_cells.toLocaleString() ?? 0} missing cells detected`}
             icon={CheckCircle2}
-            variant="emerald"
+            variant="indigo"
             badge="Dimension 1"
             tooltip="Ratio of non-null cells to total cell count across all columns"
           />
