@@ -25,7 +25,7 @@ export const QualityGauge: React.FC<QualityGaugeProps> = ({ scores }) => {
     { label: 'Completeness', value: scores?.dimension_scores?.completeness ?? 0, color: '#6366f1' },
     { label: 'Accuracy',     value: scores?.dimension_scores?.accuracy     ?? 0, color: '#10b981' },
     { label: 'Consistency',  value: scores?.dimension_scores?.consistency  ?? 0, color: '#0ea5e9' },
-    { label: 'Timeliness',   value: scores?.dimension_scores?.timeliness   ?? 0, color: '#8b5cf6' },
+    { label: 'Timeliness',   value: scores?.dimension_scores?.timeliness   ?? 0, color: '#f97316' },
   ];
 
   return (
