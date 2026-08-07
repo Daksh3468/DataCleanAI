@@ -97,6 +97,7 @@ async def upload_file(
         file_size=db_upload.file_size,
         row_count=db_upload.row_count,
         column_count=db_upload.column_count,
+        columns=df.columns.tolist(),
         uploaded_at=db_upload.uploaded_at,
         message="Dataset uploaded and parsed successfully."
     )

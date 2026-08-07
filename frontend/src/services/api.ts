@@ -16,61 +16,14 @@ const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 30000,
+  timeout: 60000,
 });
 
-// Helper mock fallback data for robust UI showcase if backend is temporarily disconnected
-const MOCK_DATASET_ID = 'upl_982347102938';
-
-const MOCK_PROFILE: ProfileResponse = {
-  upload_id: MOCK_DATASET_ID,
-  filename: 'enterprise_customer_leads.csv',
-  row_count: 12500,
-  column_count: 8,
-  total_missing_cells: 342,
-  total_duplicate_rows: 45,
-  memory_usage_bytes: 1458920,
-  quality_scores: {
-    overall_score: 78.4,
-    dimension_scores: {
-      completeness: 82.5,
-      accuracy: 74.0,
-      consistency: 80.2,
-      timeliness: 76.9,
-    },
-    total_cells: 100000,
-    missing_cells: 342,
-    duplicate_rows: 45,
-    outlier_count: 88,
-    invalid_formats: 112,
-    status: 'GOOD',
-  },
-  columns_stats: {
-    id: { name: 'id', type: 'integer', count: 12500, missing_count: 0, missing_percentage: 0, unique_count: 12500, min: 1001, max: 13500 },
-    full_name: { name: 'full_name', type: 'string', count: 12480, missing_count: 20, missing_percentage: 0.16, unique_count: 11900 },
-    email: { name: 'email', type: 'string', count: 12390, missing_count: 110, missing_percentage: 0.88, unique_count: 12100 },
-    age: { name: 'age', type: 'float', count: 12450, missing_count: 50, missing_percentage: 0.4, unique_count: 72, mean: 36.4, std: 12.8, min: 14, max: 112 },
-    annual_income: { name: 'annual_income', type: 'float', count: 12338, missing_count: 162, missing_percentage: 1.3, unique_count: 4800, mean: 72500, std: 31000, min: 12000, max: 850000 },
-    country: { name: 'country', type: 'string', count: 12500, missing_count: 0, missing_percentage: 0, unique_count: 45 },
-    signup_date: { name: 'signup_date', type: 'datetime', count: 12500, missing_count: 0, missing_percentage: 0, unique_count: 1100 },
-    is_active: { name: 'is_active', type: 'boolean', count: 12500, missing_count: 0, missing_percentage: 0, unique_count: 2 },
-  },
-  data_preview: [
-    { id: 1001, full_name: 'Johnathan Doe ', email: 'j.doe@techcorp.com', age: 34, annual_income: 85000, country: 'USA', signup_date: '2024-01-15', is_active: true },
-    { id: 1002, full_name: 'Sarah Connor', email: 's.connor@cyberdyne.net', age: 29, annual_income: 120000, country: 'USA', signup_date: '2024-01-16', is_active: true },
-    { id: 1003, full_name: '  alex smith  ', email: 'INVALID_EMAIL', age: 14, annual_income: null, country: 'UK', signup_date: '2024-01-18', is_active: false },
-    { id: 1004, full_name: 'Maria Garcia', email: 'maria.g@globalcorp.es', age: 42, annual_income: 94000, country: 'Spain', signup_date: '2024-01-20', is_active: true },
-    { id: 1005, full_name: 'Dr. Robert Bruce', email: 'bruce@hulk.org', age: 112, annual_income: 850000, country: 'Canada', signup_date: '2024-01-22', is_active: true },
-    { id: 1006, full_name: 'Emily Watson', email: 'emily@watson.co.uk', age: 31, annual_income: 68000, country: 'UK', signup_date: '2024-01-23', is_active: true },
-    { id: 1007, full_name: 'Michael Jordan', email: 'mj23@bulls.com', age: 61, annual_income: 2500000, country: 'USA', signup_date: '2024-01-24', is_active: true },
-    { id: 1008, full_name: 'Anna Kowalska', email: 'anna.k@company.pl', age: null, annual_income: 54000, country: 'Poland', signup_date: '2024-01-25', is_active: false },
-  ]
-};
-
+// Minimal empty fallbacks – no mock data, no hardcoded datasets
 let MOCK_RULES: CustomRule[] = [];
 
 export const api = {
-  // Reset all local session caches, mock rules, and storage on new upload
+  // Reset all local session caches on new upload
   resetSession: () => {
     MOCK_RULES = [];
     if (typeof window !== 'undefined') {
@@ -83,16 +36,15 @@ export const api = {
     }
   },
 
-  // 1. Upload Dataset
+  // ─── 1. Upload Dataset ────────────────────────────────────────────────────
   uploadDataset: async (file: File, onProgress?: (pct: number) => void): Promise<UploadResponse> => {
-    // Clear all previous history, cache, and rules on new upload
     api.resetSession();
 
     const formData = new FormData();
     formData.append('file', file);
 
     try {
-      const response = await apiClient.post<UploadResponse>('/upload', formData, {
+      const response = await apiClient.post('/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
         onUploadProgress: (progressEvent) => {
           if (progressEvent.total && onProgress) {
@@ -101,75 +53,170 @@ export const api = {
           }
         },
       });
-      return response.data;
+
+      const raw = response.data;
+      // Normalize backend UploadSummaryResponse → frontend UploadResponse
+      return {
+        success: true,
+        upload_id: String(raw.upload_id),
+        filename: raw.filename,
+        file_size: raw.file_size ?? 0,
+        row_count: raw.row_count ?? 0,
+        column_count: raw.column_count ?? 0,
+        columns: raw.columns ?? [],
+        message: raw.message ?? 'Uploaded successfully',
+      };
     } catch (err) {
-      console.warn('Backend API unreachable, parsing uploaded file client-side');
-      let headers: string[] = ['id', 'name', 'value', 'category', 'status'];
-      let rowCount = 100;
+      // Offline fallback: parse CSV headers client-side so UI isn't broken
+      console.warn('Backend API unreachable, parsing file client-side');
+      let headers: string[] = [];
+      let rowCount = 0;
 
       try {
         const text = await file.text();
         const lines = text.split('\n').filter((l) => l.trim().length > 0);
         if (lines.length > 0) {
           headers = lines[0].split(',').map((h) => h.trim().replace(/^["']|["']$/g, ''));
-          rowCount = Math.max(1, lines.length - 1);
+          rowCount = Math.max(0, lines.length - 1);
         }
-      } catch (e) {
-        // Fallback if binary file
-      }
+      } catch (_) {}
 
       return {
         success: true,
-        upload_id: `upl_${Date.now()}`,
+        upload_id: `local_${Date.now()}`,
         filename: file.name,
         file_size: file.size,
         row_count: rowCount,
         column_count: headers.length,
         columns: headers,
-        message: 'Dataset uploaded and indexed successfully!',
+        message: 'File parsed locally (backend unavailable)',
       };
     }
   },
 
-  // 2. Get Data Quality Profile
+  // ─── 2. Get Data Profile ──────────────────────────────────────────────────
+  // Backend: GET /api/dataset/{upload_id}/profile
+  // Returns: DatasetProfileResponse { upload_id, filename, row_count, col_count, columns: {name: ColumnProfile}, sample_rows }
   getProfile: async (uploadId?: string): Promise<ProfileResponse> => {
-    try {
-      const response = await apiClient.get<ProfileResponse>(`/profile`, {
-        params: { upload_id: uploadId },
-      });
-      return response.data;
-    } catch (err) {
-      console.warn('Backend API unreachable, returning mock profile dataset');
-      return MOCK_PROFILE;
+    if (!uploadId) throw new Error('No upload_id provided');
+    const response = await apiClient.get(`/dataset/${uploadId}/profile`);
+    const raw = response.data;
+
+    // Normalize backend columns dict → frontend columns_stats format
+    const columns_stats: ProfileResponse['columns_stats'] = {};
+    for (const [colName, colData] of Object.entries<any>(raw.columns ?? {})) {
+      columns_stats[colName] = {
+        name: colData.name ?? colName,
+        type: colData.dtype ?? 'unknown',
+        count: (raw.row_count ?? 0) - (colData.missing_count ?? 0),
+        missing_count: colData.missing_count ?? 0,
+        missing_percentage: colData.missing_pct ?? 0,
+        unique_count: colData.unique_count ?? 0,
+        mean: colData.mean ?? null,
+        std: colData.std ?? null,
+        min: colData.min ?? null,
+        max: colData.max ?? null,
+        sample_values: colData.sample_values ?? [],
+      };
     }
+
+    return {
+      upload_id: String(raw.upload_id),
+      filename: raw.filename,
+      row_count: raw.row_count ?? 0,
+      column_count: raw.col_count ?? 0,
+      total_missing_cells: Object.values(columns_stats).reduce((sum, c) => sum + c.missing_count, 0),
+      total_duplicate_rows: 0,
+      memory_usage_bytes: raw.memory_bytes ?? 0,
+      columns_stats,
+      quality_scores: {
+        overall_score: 0,
+        dimension_scores: { completeness: 0, accuracy: 0, consistency: 0, timeliness: 0 },
+        total_cells: 0,
+        missing_cells: 0,
+        duplicate_rows: 0,
+        outlier_count: 0,
+        invalid_formats: 0,
+        status: 'FAIR',
+      },
+      data_preview: raw.sample_rows ?? [],
+    };
   },
 
-  // 3. Get 4D Quality Scores
+  // ─── 3. Get Quality Scores ────────────────────────────────────────────────
+  // Backend: GET /api/dataset/{upload_id}/quality
+  // Returns: QualityScoreResponse { upload_id, overall_score, dimensions, column_scores }
   getQualityScores: async (uploadId?: string): Promise<QualityScoreResponse> => {
-    try {
-      const response = await apiClient.get<QualityScoreResponse>(`/quality-scores`, {
-        params: { upload_id: uploadId },
-      });
-      return response.data;
-    } catch (err) {
-      return MOCK_PROFILE.quality_scores;
-    }
+    if (!uploadId) throw new Error('No upload_id provided');
+    const response = await apiClient.get(`/dataset/${uploadId}/quality`);
+    const raw = response.data;
+
+    const dims = raw.dimensions ?? {};
+    const overallScore = raw.overall_score ?? 0;
+
+    return {
+      overall_score: overallScore,
+      dimension_scores: {
+        completeness: dims.completeness ?? 0,
+        accuracy: dims.validity ?? 0,       // backend "validity" ↔ frontend "accuracy"
+        consistency: dims.consistency ?? 0,
+        timeliness: dims.uniqueness ?? 0,   // backend "uniqueness" ↔ frontend "timeliness"
+      },
+      total_cells: 0,
+      missing_cells: 0,
+      duplicate_rows: 0,
+      outlier_count: 0,
+      invalid_formats: 0,
+      status: overallScore >= 90 ? 'EXCELLENT' : overallScore >= 75 ? 'GOOD' : overallScore >= 50 ? 'FAIR' : 'POOR',
+    };
   },
 
-  // 4. Custom Rules API
+  // ─── 4. Custom Rules API ──────────────────────────────────────────────────
+  // Backend: GET /api/rules  →  returns CustomRuleResponse[] { id, name, rule_type, target_column, parameters, is_active, created_at }
   getRules: async (): Promise<CustomRule[]> => {
     try {
-      const response = await apiClient.get<CustomRule[]>('/rules');
-      return response.data;
+      const response = await apiClient.get('/rules');
+      return (response.data ?? []).map((r: any) => ({
+        id: String(r.id),
+        name: r.name,
+        column: r.target_column,
+        operator: r.rule_type as any,
+        threshold: r.parameters ?? '',
+        error_level: 'WARNING' as const,
+        description: '',
+        is_active: r.is_active ?? true,
+        created_at: r.created_at,
+        violation_count: 0,
+      }));
     } catch (err) {
       return MOCK_RULES;
     }
   },
 
+  // Backend: POST /api/rules  body: { name, rule_type, target_column, parameters, is_active }
   createRule: async (rule: Omit<CustomRule, 'id'>): Promise<CustomRule> => {
     try {
-      const response = await apiClient.post<CustomRule>('/rules', rule);
-      return response.data;
+      const payload = {
+        name: rule.name,
+        rule_type: rule.operator,
+        target_column: rule.column,
+        parameters: rule.threshold,
+        is_active: rule.is_active,
+      };
+      const response = await apiClient.post('/rules', payload);
+      const r = response.data;
+      return {
+        id: String(r.id),
+        name: r.name,
+        column: r.target_column,
+        operator: r.rule_type as any,
+        threshold: r.parameters ?? '',
+        error_level: rule.error_level,
+        description: rule.description,
+        is_active: r.is_active,
+        created_at: r.created_at,
+        violation_count: 0,
+      };
     } catch (err) {
       const newRule: CustomRule = {
         ...rule,
@@ -182,6 +229,7 @@ export const api = {
     }
   },
 
+  // Backend: DELETE /api/rules/{rule_id}
   deleteRule: async (id: string): Promise<void> => {
     try {
       await apiClient.delete(`/rules/${id}`);
@@ -190,207 +238,173 @@ export const api = {
     }
   },
 
+  // Backend: POST /api/dataset/{upload_id}/evaluate-rules
   evaluateRules: async (uploadId?: string): Promise<EvaluateRulesResponse> => {
-    try {
-      const response = await apiClient.post<EvaluateRulesResponse>('/rules/evaluate', { upload_id: uploadId });
-      return response.data;
-    } catch (err) {
-      return {
-        total_evaluated: 12500,
-        total_violations: 134,
-        passed_rules: 2,
-        failed_rules: 1,
-        violations: [
-          { rule_id: 'rule_1', rule_name: 'Adult Age Limit', column: 'age', row_index: 3, actual_value: 14, expected_condition: '>= 18', error_level: 'CRITICAL' },
-          { rule_id: 'rule_2', rule_name: 'Valid Email Format', column: 'email', row_index: 3, actual_value: 'INVALID_EMAIL', expected_condition: 'contains @', error_level: 'WARNING' },
-          { rule_id: 'rule_3', rule_name: 'Income Upper Threshold', column: 'annual_income', row_index: 5, actual_value: 850000, expected_condition: '<= 500000', error_level: 'INFO' },
-          { rule_id: 'rule_3', rule_name: 'Income Upper Threshold', column: 'annual_income', row_index: 7, actual_value: 2500000, expected_condition: '<= 500000', error_level: 'INFO' },
-        ],
-        summary_by_rule: {
-          'rule_1': 14,
-          'rule_2': 112,
-          'rule_3': 8,
-        },
-      };
+    if (!uploadId) throw new Error('No upload_id provided');
+    const response = await apiClient.post(`/dataset/${uploadId}/evaluate-rules`, {});
+    const raw = response.data;
+
+    const evaluated = raw.evaluated_rules ?? [];
+    const violations = evaluated.flatMap((r: any) => {
+      if ((r.violating_indices ?? []).length === 0) return [];
+      return (r.violating_indices as number[]).slice(0, 20).map((idx: number) => ({
+        rule_id: String(r.rule_id ?? ''),
+        rule_name: r.name,
+        column: r.column,
+        row_index: idx,
+        actual_value: null,
+        expected_condition: `${r.rule_type} ${r.value ?? ''}`,
+        error_level: 'WARNING' as const,
+      }));
+    });
+
+    const summary_by_rule: Record<string, number> = {};
+    for (const r of evaluated) {
+      summary_by_rule[r.name] = r.violating_count ?? 0;
     }
+
+    const failedRules = evaluated.filter((r: any) => (r.violating_count ?? 0) > 0).length;
+
+    return {
+      total_evaluated: raw.total_rules ?? 0,
+      total_violations: raw.total_violations ?? 0,
+      passed_rules: (raw.total_rules ?? 0) - failedRules,
+      failed_rules: failedRules,
+      violations,
+      summary_by_rule,
+    };
   },
 
-  // 5. Clean Dataset Workbench
+  // ─── 5. Clean Dataset ─────────────────────────────────────────────────────
+  // Backend: POST /api/dataset/{upload_id}/clean  body: CleaningOptionsRequest
   cleanDataset: async (options: CleaningOptions, uploadId?: string): Promise<CleanResponse> => {
-    try {
-      const response = await apiClient.post<CleanResponse>('/clean', {
-        upload_id: uploadId,
-        options,
-      });
-      return response.data;
-    } catch (err) {
-      return {
-        success: true,
-        message: 'Dataset transformation successfully completed!',
-        original_rows: 12500,
-        cleaned_rows: 12455,
-        rows_removed: 45,
-        initial_quality_score: 78.4,
-        cleaned_quality_score: 96.8,
-        quality_gain: 18.4,
-        changelog: [
-          { id: 'chg_1', timestamp: new Date().toISOString(), category: 'DEDUPLICATION', action: 'Removed 45 exact duplicate rows', affected_rows: 45, affected_columns: ['ALL'], details: 'Row deduplication using subset [id, email]' },
-          { id: 'chg_2', timestamp: new Date().toISOString(), category: 'MISSING_VALUES', action: 'Imputed missing values in column [age]', affected_rows: 50, affected_columns: ['age'], details: 'Filled missing numeric values with column mean (36.4)' },
-          { id: 'chg_3', timestamp: new Date().toISOString(), category: 'NORMALIZATION', action: 'Trimmed leading/trailing whitespace in [full_name]', affected_rows: 320, affected_columns: ['full_name'], details: 'Applied string trim and case standardization' },
-          { id: 'chg_4', timestamp: new Date().toISOString(), category: 'OUTLIERS', action: 'Capped 8 outlier values in [annual_income]', affected_rows: 8, affected_columns: ['annual_income'], details: 'IQR capping at 1.5x upper threshold' },
-        ],
-        preview: [
-          { id: 1001, full_name: 'Johnathan Doe', email: 'j.doe@techcorp.com', age: 34, annual_income: 85000, country: 'USA', signup_date: '2024-01-15', is_active: true },
-          { id: 1002, full_name: 'Sarah Connor', email: 's.connor@cyberdyne.net', age: 29, annual_income: 120000, country: 'USA', signup_date: '2024-01-16', is_active: true },
-          { id: 1003, full_name: 'Alex Smith', email: 'alex.smith@techcorp.com', age: 36.4, annual_income: 72500, country: 'UK', signup_date: '2024-01-18', is_active: false },
-          { id: 1004, full_name: 'Maria Garcia', email: 'maria.g@globalcorp.es', age: 42, annual_income: 94000, country: 'Spain', signup_date: '2024-01-20', is_active: true },
-          { id: 1005, full_name: 'Dr. Robert Bruce', email: 'bruce@hulk.org', age: 112, annual_income: 500000, country: 'Canada', signup_date: '2024-01-22', is_active: true },
-        ],
-        download_urls: {
-          csv: `${API_BASE_URL}/export/csv?upload_id=${uploadId || MOCK_DATASET_ID}`,
-          excel: `${API_BASE_URL}/export/xlsx?upload_id=${uploadId || MOCK_DATASET_ID}`,
-          html: `${API_BASE_URL}/export/html?upload_id=${uploadId || MOCK_DATASET_ID}`,
-          pdf: `${API_BASE_URL}/export/pdf?upload_id=${uploadId || MOCK_DATASET_ID}`,
-        },
-      };
-    }
+    if (!uploadId) throw new Error('No upload_id provided');
+
+    // Map frontend CleaningOptions → backend CleaningOptionsRequest
+    const payload = {
+      remove_duplicates: options.deduplication?.enabled ?? false,
+      duplicate_cols: options.deduplication?.subset_columns ?? null,
+      duplicate_keep: options.deduplication?.keep === false ? 'false' : (options.deduplication?.keep ?? 'first'),
+
+      trim_whitespace: options.string_normalization?.trim_whitespace ?? false,
+      whitespace_cols: options.string_normalization?.columns ?? null,
+
+      handle_missing: options.missing_values?.method !== undefined && options.missing_values?.method !== 'drop' ||
+                      (options.missing_values?.method === 'drop' && (options.missing_values?.columns?.length ?? 0) > 0),
+      missing_strategy: options.missing_values?.method ?? 'drop',
+      missing_cols: options.missing_values?.columns ?? null,
+      missing_custom_val: options.missing_values?.fill_value ?? null,
+
+      convert_numeric: options.type_casting?.enabled ?? false,
+      numeric_cols: options.type_casting?.column_types
+        ? Object.entries(options.type_casting.column_types)
+            .filter(([, t]) => t === 'float' || t === 'int')
+            .map(([col]) => col)
+        : null,
+
+      remove_outliers: options.outliers?.enabled ?? false,
+      outlier_method: options.outliers?.method ?? 'iqr',
+      outlier_cols: options.outliers?.columns ?? null,
+    };
+
+    const response = await apiClient.post(`/dataset/${uploadId}/clean`, payload);
+    const raw = response.data;
+
+    return {
+      success: true,
+      message: 'Dataset cleaned successfully',
+      original_rows: raw.original_row_count ?? 0,
+      cleaned_rows: raw.cleaned_row_count ?? 0,
+      rows_removed: (raw.original_row_count ?? 0) - (raw.cleaned_row_count ?? 0),
+      initial_quality_score: raw.original_quality_score ?? 0,
+      cleaned_quality_score: raw.cleaned_quality_score ?? 0,
+      quality_gain: (raw.cleaned_quality_score ?? 0) - (raw.original_quality_score ?? 0),
+      changelog: (raw.changelog ?? []).map((c: any, i: number) => ({
+        id: `chg_${i}`,
+        timestamp: new Date().toISOString(),
+        action: c.action ?? c.details ?? '',
+        category: 'NORMALIZATION' as const,
+        affected_rows: c.rows_affected ?? 0,
+        affected_columns: c.column_name ? [c.column_name] : [],
+        details: c.details ?? '',
+      })),
+      preview: raw.sample_rows ?? [],
+      download_urls: {
+        csv: `${API_BASE_URL}/dataset/${uploadId}/export/csv`,
+        excel: `${API_BASE_URL}/dataset/${uploadId}/export/xlsx`,
+        html: `${API_BASE_URL}/dataset/${uploadId}/export/html`,
+        pdf: `${API_BASE_URL}/dataset/${uploadId}/export/pdf`,
+      },
+    };
   },
 
-  // 6. Export Links
+  // ─── 6. Export ───────────────────────────────────────────────────────────
   getExportUrl: (format: 'csv' | 'xlsx' | 'html', uploadId?: string): string => {
-    return `${API_BASE_URL}/export/${format}?upload_id=${uploadId || MOCK_DATASET_ID}`;
+    if (!uploadId) return '';
+    return `${API_BASE_URL}/dataset/${uploadId}/export/${format}`;
   },
 
-  // 8. Machine Learning & AI API Endpoints
+  // ─── 7. AI / ML Endpoints ────────────────────────────────────────────────
   detectAnomalies: async (uploadId?: string, contamination: number = 0.05) => {
-    try {
-      const response = await apiClient.post('/ai/detect-anomalies', { upload_id: uploadId, contamination });
-      return response.data;
-    } catch (err) {
-      return {
-        upload_id: uploadId || MOCK_DATASET_ID,
-        method: 'IsolationForest',
-        contamination,
-        anomaly_count: 42,
-        anomaly_pct: 0.34,
-        anomaly_indices: [12, 45, 89, 104, 215, 308, 412],
-        message: 'Isolation Forest ML Anomaly Detection complete.'
-      };
-    }
+    if (!uploadId) throw new Error('No upload_id provided');
+    const response = await apiClient.post('/ai/detect-anomalies', {
+      upload_id: Number(uploadId),
+      contamination,
+    });
+    return response.data;
   },
 
   imputeKNN: async (uploadId?: string, nNeighbors: number = 5) => {
-    try {
-      const response = await apiClient.post('/ai/impute-knn', { upload_id: uploadId, n_neighbors: nNeighbors });
-      return response.data;
-    } catch (err) {
-      return {
-        upload_id: uploadId || MOCK_DATASET_ID,
-        method: 'KNNImputer',
-        n_neighbors: nNeighbors,
-        imputed_cells: 342,
-        message: 'KNN ML Imputation complete.'
-      };
-    }
+    if (!uploadId) throw new Error('No upload_id provided');
+    const response = await apiClient.post('/ai/impute-knn', {
+      upload_id: Number(uploadId),
+      n_neighbors: nNeighbors,
+    });
+    return response.data;
   },
 
   fuzzyDeduplicate: async (uploadId?: string, threshold: number = 85.0) => {
-    try {
-      const response = await apiClient.post('/ai/fuzzy-dedup', { upload_id: uploadId, threshold });
-      return response.data;
-    } catch (err) {
-      return {
-        upload_id: uploadId || MOCK_DATASET_ID,
-        method: 'RapidFuzz (Levenshtein)',
-        threshold,
-        duplicate_clusters: 18,
-        fuzzy_matches_found: 36,
-        message: 'Fuzzy string record deduplication complete.'
-      };
-    }
+    if (!uploadId) throw new Error('No upload_id provided');
+    const response = await apiClient.post('/ai/fuzzy-dedup', {
+      upload_id: Number(uploadId),
+      threshold,
+    });
+    return response.data;
   },
 
   getSemanticTypes: async (uploadId?: string) => {
-    try {
-      const response = await apiClient.get('/ai/semantic-types', { params: { upload_id: uploadId } });
-      return response.data;
-    } catch (err) {
-      return {
-        email: 'EMAIL_ADDRESS',
-        full_name: 'PERSON_NAME',
-        age: 'NUMERIC_AGE',
-        annual_income: 'CURRENCY_AMOUNT',
-        signup_date: 'DATETIME',
-        country: 'GEOGRAPHIC_LOCATION'
-      };
-    }
+    if (!uploadId) throw new Error('No upload_id provided');
+    const response = await apiClient.get('/ai/semantic-types', {
+      params: { upload_id: Number(uploadId) },
+    });
+    return response.data;
   },
 
-  // 9. DuckDB SQL & Analytics EDA API Endpoints
+  // ─── 8. SQL Analytics ────────────────────────────────────────────────────
   executeSQL: async (query: string, uploadId?: string) => {
-    try {
-      const response = await apiClient.post('/analytics/sql', { upload_id: uploadId, query });
-      return response.data;
-    } catch (err: any) {
-      return {
-        success: true,
-        engine: 'DuckDB SQL Engine',
-        query,
-        row_count: 5,
-        columns: ['id', 'full_name', 'email', 'age', 'annual_income'],
-        data: [
-          { id: 1001, full_name: 'Johnathan Doe', email: 'j.doe@techcorp.com', age: 34, annual_income: 85000 },
-          { id: 1002, full_name: 'Sarah Connor', email: 's.connor@cyberdyne.net', age: 29, annual_income: 120000 },
-          { id: 1003, full_name: 'Alex Smith', email: 'alex.smith@techcorp.com', age: 36, annual_income: 72500 },
-          { id: 1004, full_name: 'Maria Garcia', email: 'maria.g@globalcorp.es', age: 42, annual_income: 94000 },
-          { id: 1005, full_name: 'Robert Bruce', email: 'bruce@hulk.org', age: 48, annual_income: 110000 },
-        ],
-        message: 'SQL execution sample result.'
-      };
-    }
+    if (!uploadId) throw new Error('No upload_id provided');
+    const response = await apiClient.post('/analytics/sql', {
+      upload_id: Number(uploadId),
+      query,
+    });
+    return response.data;
   },
 
   getCorrelationMatrix: async (uploadId?: string, method: string = 'pearson') => {
-    try {
-      const response = await apiClient.get('/analytics/correlation', { params: { upload_id: uploadId, method } });
-      return response.data;
-    } catch (err) {
-      return {
-        success: true,
-        method: 'pearson',
-        columns: ['age', 'annual_income', 'credit_score', 'purchases_count'],
-        matrix: [
-          [1.0, 0.45, 0.28, 0.38],
-          [0.45, 1.0, 0.62, 0.71],
-          [0.28, 0.62, 1.0, 0.41],
-          [0.38, 0.71, 0.41, 1.0],
-        ],
-        message: 'Sample feature correlation matrix.'
-      };
-    }
+    if (!uploadId) throw new Error('No upload_id provided');
+    const response = await apiClient.get('/analytics/correlation', {
+      params: { upload_id: Number(uploadId), method },
+    });
+    return response.data;
   },
 
   runCopilot: async (prompt: string, uploadId?: string, apiKey?: string) => {
-    try {
-      const response = await apiClient.post('/analytics/copilot', { upload_id: uploadId, prompt, api_key: apiKey });
-      return response.data;
-    } catch (err) {
-      return {
-        success: true,
-        prompt,
-        actions_identified: [
-          'Applied KNN Machine Learning Imputation for missing values',
-          'Enabled Outlier Capping at 1.5x IQR threshold',
-          'Trimmed leading/trailing whitespace across text fields'
-        ],
-        explanation: 'AI Copilot parsed your instruction and configured KNN imputation, outlier capping, and string trimming.',
-        cleaning_options: {
-          missing_values: { method: 'knn', fill_value: 'N/A' },
-          deduplication: { enabled: true, keep: 'first' },
-          outliers: { enabled: true, method: 'iqr', threshold: 1.5, action: 'cap' },
-          string_normalization: { enabled: true, trim_whitespace: true, case_format: 'none' }
-        }
-      };
-    }
+    if (!uploadId) throw new Error('No upload_id provided');
+    const response = await apiClient.post('/analytics/copilot', {
+      upload_id: Number(uploadId),
+      prompt,
+      api_key: apiKey,
+    });
+    return response.data;
   },
 };

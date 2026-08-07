@@ -26,15 +26,22 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ dataset }) => {
   const navigate = useNavigate();
   const [profile, setProfile] = useState<ProfileResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [columnSearch, setColumnSearch] = useState('');
 
   const fetchProfile = async () => {
     setLoading(true);
+    setError(null);
     try {
-      const data = await api.getProfile(dataset?.upload_id);
-      setProfile(data);
-    } catch (err) {
-      console.error('Failed to load dataset quality profile', err);
+      const [profileData, qualityData] = await Promise.all([
+        api.getProfile(dataset?.upload_id),
+        api.getQualityScores(dataset?.upload_id),
+      ]);
+      // Merge quality scores into the profile object
+      setProfile({ ...profileData, quality_scores: qualityData });
+    } catch (err: any) {
+      console.error('Failed to load dataset profile', err);
+      setError(err?.response?.data?.detail ?? err?.message ?? 'Failed to load dataset profile.');
     } finally {
       setLoading(false);
     }
@@ -74,6 +81,22 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ dataset }) => {
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
         <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
         <p className="text-sm text-slate-600 font-semibold">Profiling dataset & computing 4D quality scores...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-2xl p-8 text-center max-w-xl mx-auto my-12 space-y-3">
+        <AlertTriangle className="w-10 h-10 text-red-500 mx-auto" />
+        <h2 className="text-lg font-bold text-red-800">Failed to Load Profile</h2>
+        <p className="text-sm text-red-600">{error}</p>
+        <button
+          onClick={fetchProfile}
+          className="px-5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs transition-colors"
+        >
+          Retry
+        </button>
       </div>
     );
   }

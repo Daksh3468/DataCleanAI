@@ -18,6 +18,7 @@ class UploadSummaryResponse(BaseModel):
     file_size: Optional[int] = 0
     row_count: Optional[int] = 0
     column_count: Optional[int] = 0
+    columns: List[str] = Field(default_factory=list)
     uploaded_at: Optional[datetime] = None
     message: str = "File uploaded successfully"
 

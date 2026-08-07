@@ -80,8 +80,10 @@ export const CleanPage: React.FC<CleanPageProps> = ({ dataset }) => {
     try {
       const res = await api.cleanDataset(cleaningOptions, dataset?.upload_id);
       setCleanResult(res);
-    } catch (err) {
+    } catch (err: any) {
+      const msg = err?.response?.data?.detail ?? err?.message ?? 'Cleaning pipeline failed';
       console.error('Cleaning pipeline failed', err);
+      alert(`Error: ${msg}`);
     } finally {
       setIsCleaning(false);
     }
