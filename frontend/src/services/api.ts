@@ -107,8 +107,24 @@ let MOCK_RULES: CustomRule[] = [
 ];
 
 export const api = {
+  // Reset all local session caches, mock rules, and storage on new upload
+  resetSession: () => {
+    MOCK_RULES = [];
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.clear();
+        sessionStorage.clear();
+      } catch (e) {
+        // Ignore storage errors
+      }
+    }
+  },
+
   // 1. Upload Dataset
   uploadDataset: async (file: File, onProgress?: (pct: number) => void): Promise<UploadResponse> => {
+    // Clear all previous history, cache, and rules on new upload
+    api.resetSession();
+
     const formData = new FormData();
     formData.append('file', file);
 
@@ -124,15 +140,29 @@ export const api = {
       });
       return response.data;
     } catch (err) {
-      console.warn('Backend API unreachable, using simulated file upload response');
+      console.warn('Backend API unreachable, parsing uploaded file client-side');
+      let headers: string[] = ['id', 'name', 'value', 'category', 'status'];
+      let rowCount = 100;
+
+      try {
+        const text = await file.text();
+        const lines = text.split('\n').filter((l) => l.trim().length > 0);
+        if (lines.length > 0) {
+          headers = lines[0].split(',').map((h) => h.trim().replace(/^["']|["']$/g, ''));
+          rowCount = Math.max(1, lines.length - 1);
+        }
+      } catch (e) {
+        // Fallback if binary file
+      }
+
       return {
         success: true,
         upload_id: `upl_${Date.now()}`,
         filename: file.name,
         file_size: file.size,
-        row_count: 12500,
-        column_count: 8,
-        columns: ['id', 'full_name', 'email', 'age', 'annual_income', 'country', 'signup_date', 'is_active'],
+        row_count: rowCount,
+        column_count: headers.length,
+        columns: headers,
         message: 'Dataset uploaded and indexed successfully!',
       };
     }

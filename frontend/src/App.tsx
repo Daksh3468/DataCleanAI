@@ -10,6 +10,7 @@ import { ReportPage } from './pages/ReportPage';
 import { PrivacyPage } from './pages/PrivacyPage';
 import { TermsPage } from './pages/TermsPage';
 
+import { api } from './services/api';
 import { Dataset } from './types';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
@@ -25,13 +26,23 @@ export const App: React.FC = () => {
     columns: ['id', 'full_name', 'email', 'age', 'annual_income', 'country', 'signup_date', 'is_active'],
   });
 
+  const handleNewUpload = () => {
+    api.resetSession();
+    setCurrentDataset(null);
+  };
+
+  const handleDatasetUploaded = (ds: Dataset) => {
+    api.resetSession();
+    setCurrentDataset(ds);
+  };
+
   return (
     <BrowserRouter>
       <div className="min-h-screen bg-[#F8FAFC] text-slate-900 flex flex-col font-sans selection:bg-indigo-100 selection:text-indigo-900">
         {/* Global Website Header Navbar */}
         <Navbar
           currentDataset={currentDataset}
-          onNewUpload={() => setCurrentDataset(null)}
+          onNewUpload={handleNewUpload}
         />
 
         {/* Main Website Page Content Container */}
@@ -40,7 +51,7 @@ export const App: React.FC = () => {
             <Routes>
               <Route
                 path="/upload"
-                element={<UploadPage onDatasetUploaded={(ds) => setCurrentDataset(ds)} />}
+                element={<UploadPage onDatasetUploaded={handleDatasetUploaded} />}
               />
               <Route
                 path="/profile"
