@@ -13,12 +13,93 @@ export const SQLConsole: React.FC<SQLConsoleProps> = ({ dataset }) => {
   const [error, setError] = useState<string | null>(null);
   const [queryResult, setQueryResult] = useState<any | null>(null);
 
-  const sampleQueries = [
-    { label: 'Sample 10 Rows', sql: 'SELECT * FROM dataset LIMIT 10;' },
-    { label: 'Numerical Summary', sql: 'SELECT COUNT(*) as total_rows, AVG(age) as avg_age, MAX(annual_income) as max_income FROM dataset;' },
-    { label: 'Group By Country', sql: 'SELECT country, COUNT(*) as lead_count FROM dataset GROUP BY country ORDER BY lead_count DESC;' },
-    { label: 'Filter Null Emails', sql: 'SELECT full_name, age FROM dataset WHERE email IS NULL OR email = "";' },
-  ];
+  // Build smart preset queries dynamically from the actual uploaded columns
+  const sampleQueries = React.useMemo(() => {
+    const cols = dataset?.columns ?? [];
+    if (cols.length === 0) {
+      return [{ label: 'Sample 10 Rows', sql: 'SELECT * FROM dataset LIMIT 10;' }];
+    }
+
+    const colList = cols.map((c) => `"${c}"`).join(', ');
+
+    // Heuristic: guess numeric columns (contain keywords or are positioned after first col)
+    const numericKeywords = ['age', 'income', 'salary', 'price', 'amount', 'count', 'score',
+      'value', 'total', 'quantity', 'rate', 'percent', 'pct', 'revenue', 'cost', 'fee', 'weight',
+      'height', 'size', 'rank', 'year', 'month', 'day', 'id'];
+    const numericCols = cols.filter((c) =>
+      numericKeywords.some((kw) => c.toLowerCase().includes(kw))
+    );
+
+    // Heuristic: guess categorical / group-by columns
+    const categoricalKeywords = ['country', 'city', 'state', 'region', 'category', 'type',
+      'status', 'gender', 'department', 'group', 'class', 'role', 'tag', 'label', 'source',
+      'segment', 'tier', 'level', 'team', 'product', 'brand', 'platform', 'channel'];
+    const catCols = cols.filter((c) =>
+      categoricalKeywords.some((kw) => c.toLowerCase().includes(kw))
+    );
+
+    // Heuristic: nullable / quality-check columns
+    const nullableKeywords = ['email', 'phone', 'address', 'note', 'comment', 'description',
+      'remark', 'url', 'link', 'image', 'photo', 'avatar'];
+    const nullableCols = cols.filter((c) =>
+      nullableKeywords.some((kw) => c.toLowerCase().includes(kw))
+    );
+
+    const presets: { label: string; sql: string }[] = [];
+
+    // 1. Always: full sample
+    presets.push({ label: 'Sample 10 Rows', sql: `SELECT * FROM dataset LIMIT 10;` });
+
+    // 2. Row count + nulls per column
+    const nullChecks = cols
+      .slice(0, 5)
+      .map((c) => `COUNT(*) - COUNT("${c}") AS "${c}_nulls"`)
+      .join(',\n  ');
+    presets.push({
+      label: 'Null Count per Column',
+      sql: `SELECT\n  COUNT(*) AS total_rows,\n  ${nullChecks}\nFROM dataset;`,
+    });
+
+    // 3. Numeric summary if we found numeric cols
+    if (numericCols.length > 0) {
+      const aggParts = numericCols
+        .slice(0, 3)
+        .map((c) => `AVG("${c}") AS avg_${c}, MIN("${c}") AS min_${c}, MAX("${c}") AS max_${c}`)
+        .join(',\n  ');
+      presets.push({
+        label: 'Numeric Summary',
+        sql: `SELECT\n  COUNT(*) AS total_rows,\n  ${aggParts}\nFROM dataset;`,
+      });
+    }
+
+    // 4. Group-by if we found categorical cols
+    if (catCols.length > 0) {
+      const gc = catCols[0];
+      presets.push({
+        label: `Group by ${gc}`,
+        sql: `SELECT "${gc}", COUNT(*) AS count\nFROM dataset\nGROUP BY "${gc}"\nORDER BY count DESC\nLIMIT 20;`,
+      });
+    }
+
+    // 5. Filter nulls on a nullable col if found
+    if (nullableCols.length > 0) {
+      const nc = nullableCols[0];
+      presets.push({
+        label: `Filter Missing ${nc}`,
+        sql: `SELECT ${colList}\nFROM dataset\nWHERE "${nc}" IS NULL OR TRIM("${nc}") = ''\nLIMIT 50;`,
+      });
+    }
+
+    // 6. Duplicate detection on first 2 cols
+    const dupCols = cols.slice(0, Math.min(2, cols.length)).map((c) => `"${c}"`).join(', ');
+    presets.push({
+      label: 'Find Duplicates',
+      sql: `SELECT ${dupCols}, COUNT(*) AS occurrences\nFROM dataset\nGROUP BY ${dupCols}\nHAVING COUNT(*) > 1\nORDER BY occurrences DESC;`,
+    });
+
+    return presets;
+  }, [dataset?.columns]);
+
 
   const handleRunQuery = async () => {
     if (!query.trim()) return;
