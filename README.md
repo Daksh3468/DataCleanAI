@@ -52,19 +52,6 @@ Upload CSV/Excel  →  Profile & 4D Health  →  Validate Custom Rules  →  ML 
 
 ---
 
-## 📁 Sample Test Datasets
-
-Try DataCleanAI instantly with sample datasets located in [`sample_datasets/`](sample_datasets/):
-
-| Dataset | Description | Rows | Primary Test Case |
-|---|---|---|---|
-| 📄 [`Messy_Employee_dataset.csv`](sample_datasets/Messy_Employee_dataset.csv) | HR & Employee Records | ~1,020 | Salary outliers, missing emails, whitespace trim |
-| 📄 [`crime_incidents_messy.csv`](sample_datasets/crime_incidents_messy.csv) | Law Enforcement Logs | ~5,250 | High missingness, weapon type & date normalization |
-| 📄 [`online_retail_real_world.csv`](sample_datasets/online_retail_real_world.csv) | E-Commerce Sales | ~3,000 | Price/Quantity anomalies, customer ID nulls |
-| 📄 [`gender_submission.csv`](sample_datasets/gender_submission.csv) | Classification Benchmark | ~418 | Uniqueness verification, binary casting |
-
----
-
 ## 🚀 Quick Start
 
 ### Option 1 — Docker (Recommended) 🐳
@@ -127,6 +114,19 @@ npm run build
 ```
 
 **Current test status:** All integration tests passing ✅
+
+---
+
+## 📁 Sample Test Datasets
+
+Try DataCleanAI instantly with sample datasets located in [`sample_datasets/`](sample_datasets/):
+
+| Dataset | Description | Rows | Primary Test Case |
+|---|---|---|---|
+| 📄 [`Messy_Employee_dataset.csv`](sample_datasets/Messy_Employee_dataset.csv) | HR & Employee Records | ~1,020 | Salary outliers, missing emails, whitespace trim |
+| 📄 [`crime_incidents_messy.csv`](sample_datasets/crime_incidents_messy.csv) | Law Enforcement Logs | ~5,250 | High missingness, weapon type & date normalization |
+| 📄 [`online_retail_real_world.csv`](sample_datasets/online_retail_real_world.csv) | E-Commerce Sales | ~3,000 | Price/Quantity anomalies, customer ID nulls |
+| 📄 [`gender_submission.csv`](sample_datasets/gender_submission.csv) | Classification Benchmark | ~418 | Uniqueness verification, binary casting |
 
 ---
 
