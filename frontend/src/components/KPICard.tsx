@@ -10,7 +10,7 @@ interface KPICardProps {
     value: string | number;
     isPositive: boolean;
   };
-  variant?: 'indigo' | 'emerald' | 'amber' | 'rose' | 'violet';
+  variant?: 'indigo' | 'emerald' | 'amber' | 'rose' | 'violet' | 'sky' | 'orange';
   tooltip?: string;
   badge?: string;
 }
@@ -60,6 +60,20 @@ export const KPICard: React.FC<KPICardProps> = ({
       glow: 'hover:shadow-violet-500/10',
       badge: 'bg-violet-50 text-violet-700 border-violet-200',
       textAccent: 'text-violet-600',
+    },
+    sky: {
+      border: 'hover:border-sky-300',
+      iconBg: 'bg-sky-50 text-sky-600 border-sky-200',
+      glow: 'hover:shadow-sky-500/10',
+      badge: 'bg-sky-50 text-sky-700 border-sky-200',
+      textAccent: 'text-sky-600',
+    },
+    orange: {
+      border: 'hover:border-orange-300',
+      iconBg: 'bg-orange-50 text-orange-600 border-orange-200',
+      glow: 'hover:shadow-orange-500/10',
+      badge: 'bg-orange-50 text-orange-700 border-orange-200',
+      textAccent: 'text-orange-600',
     },
   };
 

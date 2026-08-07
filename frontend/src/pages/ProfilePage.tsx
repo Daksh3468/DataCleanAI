@@ -171,7 +171,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ dataset }) => {
             value={`${scores?.dimension_scores.accuracy.toFixed(1)}%`}
             subtitle={`${scores?.outlier_count ?? 0} numerical outliers flagged`}
             icon={AlertTriangle}
-            variant="amber"
+            variant="emerald"
             badge="Dimension 2"
             tooltip="Evaluation of value boundary checks, invalid formats, and z-score anomalies"
           />
@@ -181,7 +181,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ dataset }) => {
             value={`${scores?.dimension_scores.consistency.toFixed(1)}%`}
             subtitle={`${scores?.duplicate_rows ?? 0} exact duplicate rows found`}
             icon={Layers}
-            variant="indigo"
+            variant="sky"
             badge="Dimension 3"
             tooltip="Measures uniform data structures, duplicate rows, and schema integrity"
           />
@@ -191,7 +191,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ dataset }) => {
             value={`${scores?.dimension_scores.timeliness.toFixed(1)}%`}
             subtitle={`${scores?.invalid_formats ?? 0} invalid timestamps`}
             icon={BarChart3}
-            variant="violet"
+            variant="orange"
             badge="Dimension 4"
             tooltip="Measures date format adherence and recency freshness metrics"
           />
