@@ -101,13 +101,15 @@ export const SQLConsole: React.FC<SQLConsoleProps> = ({ dataset }) => {
   }, [dataset?.columns]);
 
 
-  const handleRunQuery = async () => {
-    if (!query.trim()) return;
+  const handleRunQuery = async (queryToRun?: string) => {
+    const activeQuery = queryToRun ?? query;
+    if (!activeQuery.trim()) return;
+    setQuery(activeQuery);
     setIsExecuting(true);
     setError(null);
 
     try {
-      const res = await api.executeSQL(query, dataset?.upload_id);
+      const res = await api.executeSQL(activeQuery, dataset?.upload_id);
       if (res.success) {
         setQueryResult(res);
       } else {
@@ -119,6 +121,13 @@ export const SQLConsole: React.FC<SQLConsoleProps> = ({ dataset }) => {
       setIsExecuting(false);
     }
   };
+
+  // Auto-run initial sample query when active dataset changes
+  React.useEffect(() => {
+    if (dataset?.upload_id) {
+      handleRunQuery('SELECT * FROM dataset LIMIT 10;');
+    }
+  }, [dataset?.upload_id]);
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-6">
@@ -142,7 +151,7 @@ export const SQLConsole: React.FC<SQLConsoleProps> = ({ dataset }) => {
         </div>
 
         <button
-          onClick={handleRunQuery}
+          onClick={() => handleRunQuery()}
           disabled={isExecuting}
           className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-indigo-600 text-white font-bold text-xs shadow-xs transition-colors flex items-center space-x-2 shrink-0 disabled:opacity-50 cursor-pointer"
         >
@@ -166,7 +175,7 @@ export const SQLConsole: React.FC<SQLConsoleProps> = ({ dataset }) => {
         {sampleQueries.map((item, i) => (
           <button
             key={i}
-            onClick={() => setQuery(item.sql)}
+            onClick={() => handleRunQuery(item.sql)}
             className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-700 font-mono text-xs font-medium border border-slate-200 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
           >
             {item.label}
