@@ -346,62 +346,81 @@ export const api = {
 
   // ─── 7. AI / ML Endpoints ────────────────────────────────────────────────
   detectAnomalies: async (uploadId?: string, contamination: number = 0.05) => {
-    if (!uploadId) throw new Error('No upload_id provided');
+    const formattedUploadId = uploadId ? (!isNaN(Number(uploadId)) ? Number(uploadId) : uploadId) : undefined;
     const response = await apiClient.post('/ai/detect-anomalies', {
-      upload_id: Number(uploadId),
+      upload_id: formattedUploadId,
       contamination,
     });
     return response.data;
   },
 
   imputeKNN: async (uploadId?: string, nNeighbors: number = 5) => {
-    if (!uploadId) throw new Error('No upload_id provided');
+    const formattedUploadId = uploadId ? (!isNaN(Number(uploadId)) ? Number(uploadId) : uploadId) : undefined;
     const response = await apiClient.post('/ai/impute-knn', {
-      upload_id: Number(uploadId),
+      upload_id: formattedUploadId,
       n_neighbors: nNeighbors,
     });
     return response.data;
   },
 
   fuzzyDeduplicate: async (uploadId?: string, threshold: number = 85.0) => {
-    if (!uploadId) throw new Error('No upload_id provided');
+    const formattedUploadId = uploadId ? (!isNaN(Number(uploadId)) ? Number(uploadId) : uploadId) : undefined;
     const response = await apiClient.post('/ai/fuzzy-dedup', {
-      upload_id: Number(uploadId),
+      upload_id: formattedUploadId,
       threshold,
     });
     return response.data;
   },
 
   getSemanticTypes: async (uploadId?: string) => {
-    if (!uploadId) throw new Error('No upload_id provided');
+    const formattedUploadId = uploadId ? (!isNaN(Number(uploadId)) ? Number(uploadId) : uploadId) : undefined;
     const response = await apiClient.get('/ai/semantic-types', {
-      params: { upload_id: Number(uploadId) },
+      params: { upload_id: formattedUploadId },
     });
     return response.data;
   },
 
   // ─── 8. SQL Analytics ────────────────────────────────────────────────────
   executeSQL: async (query: string, uploadId?: string) => {
-    if (!uploadId) throw new Error('No upload_id provided');
-    const response = await apiClient.post('/analytics/sql', {
-      upload_id: Number(uploadId),
-      query,
-    });
-    return response.data;
+    try {
+      const formattedUploadId = uploadId ? (!isNaN(Number(uploadId)) ? Number(uploadId) : uploadId) : undefined;
+      const response = await apiClient.post('/analytics/sql', {
+        upload_id: formattedUploadId,
+        query,
+      });
+      return response.data;
+    } catch (err: any) {
+      console.warn('SQL execution backend error:', err);
+      const detail = err.response?.data?.detail || err.response?.data?.error || err.message || 'Failed to execute SQL query';
+      return {
+        success: false,
+        error: typeof detail === 'string' ? detail : JSON.stringify(detail),
+        query,
+      };
+    }
   },
 
   getCorrelationMatrix: async (uploadId?: string, method: string = 'pearson') => {
-    if (!uploadId) throw new Error('No upload_id provided');
-    const response = await apiClient.get('/analytics/correlation', {
-      params: { upload_id: Number(uploadId), method },
-    });
-    return response.data;
+    try {
+      const formattedUploadId = uploadId ? (!isNaN(Number(uploadId)) ? Number(uploadId) : uploadId) : undefined;
+      const response = await apiClient.get('/analytics/correlation', {
+        params: { upload_id: formattedUploadId, method },
+      });
+      return response.data;
+    } catch (err: any) {
+      return {
+        success: false,
+        error: err.response?.data?.detail || err.message,
+        columns: [],
+        matrix: [],
+      };
+    }
   },
 
   runCopilot: async (prompt: string, uploadId?: string, apiKey?: string) => {
-    if (!uploadId) throw new Error('No upload_id provided');
+    const formattedUploadId = uploadId ? (!isNaN(Number(uploadId)) ? Number(uploadId) : uploadId) : undefined;
     const response = await apiClient.post('/analytics/copilot', {
-      upload_id: Number(uploadId),
+      upload_id: formattedUploadId,
       prompt,
       api_key: apiKey,
     });

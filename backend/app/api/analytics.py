@@ -13,9 +13,11 @@ from app.services.analytics import execute_sql_query, calculate_correlation_matr
 router = APIRouter(prefix="/analytics", tags=["Analytics & SQL Engine"])
 
 
+from typing import Dict, Any, List, Optional, Union
+
 class SQLQueryRequest(BaseModel):
-    upload_id: Optional[str] = None
-    query: str = Field(..., example="SELECT * FROM dataset WHERE age > 30 LIMIT 10")
+    upload_id: Optional[Union[int, str]] = None
+    query: str = Field(default="SELECT * FROM dataset LIMIT 10")
 
 
 @router.post("/sql")
@@ -23,7 +25,11 @@ async def api_execute_sql(req: SQLQueryRequest):
     """
     Executes raw SQL queries against the active dataset using in-memory DuckDB.
     """
-    df = dataset_store.get_dataset(req.upload_id)
+    upload_id = req.upload_id
+    if isinstance(upload_id, str) and upload_id.isdigit():
+        upload_id = int(upload_id)
+
+    df = dataset_store.get_dataset(upload_id)
     if df is None:
         raise HTTPException(status_code=404, detail="Dataset session not found. Please upload a dataset first.")
 
