@@ -7,6 +7,8 @@ import { ProfilePage } from './pages/ProfilePage';
 import { RulesPage } from './pages/RulesPage';
 import { CleanPage } from './pages/CleanPage';
 import { ReportPage } from './pages/ReportPage';
+import { PrivacyPage } from './pages/PrivacyPage';
+import { TermsPage } from './pages/TermsPage';
 
 import { Dataset } from './types';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -56,6 +58,8 @@ export const App: React.FC = () => {
                 path="/report"
                 element={<ReportPage dataset={currentDataset} />}
               />
+              <Route path="/privacy" element={<PrivacyPage />} />
+              <Route path="/terms" element={<TermsPage />} />
 
               <Route path="*" element={<Navigate to="/upload" replace />} />
             </Routes>

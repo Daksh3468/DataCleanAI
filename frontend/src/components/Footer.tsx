@@ -135,14 +135,14 @@ export const Footer: React.FC = () => {
                 </a>
               </li>
               <li>
-                <a href="#privacy" className="hover:text-white transition-colors">
+                <NavLink to="/privacy" className="hover:text-white transition-colors">
                   Privacy Policy & Compliance
-                </a>
+                </NavLink>
               </li>
               <li>
-                <a href="#terms" className="hover:text-white transition-colors">
+                <NavLink to="/terms" className="hover:text-white transition-colors">
                   Terms of Service
-                </a>
+                </NavLink>
               </li>
             </ul>
           </div>
