@@ -113,8 +113,6 @@ cd frontend
 npm run build
 ```
 
-**Current test status:** All integration tests passing ✅
-
 ---
 
 ## 📁 Sample Test Datasets
