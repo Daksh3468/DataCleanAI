@@ -9,15 +9,14 @@ interface QualityGaugeProps {
 export const QualityGauge: React.FC<QualityGaugeProps> = ({ scores }) => {
   const overall = scores?.overall_score ?? 0;
   const score = Math.min(100, Math.max(0, overall));
-  const scoreStr = score.toFixed(1);   // e.g. "99.4"
-  const ghostScore = Math.max(0, score - 1).toFixed(1); // ghost digit one step behind
+  const scoreStr = score.toFixed(1);
 
   // Status config
   const getStatus = (s: number) => {
-    if (s >= 90) return { label: 'Excellent', color: '#6366f1', ghost: '#a5b4fc' };
-    if (s >= 75) return { label: 'Good',      color: '#3b82f6', ghost: '#93c5fd' };
-    if (s >= 50) return { label: 'Fair',      color: '#f59e0b', ghost: '#fcd34d' };
-    return             { label: 'Poor',       color: '#ef4444', ghost: '#fca5a5' };
+    if (s >= 90) return { label: 'Excellent', color: '#6366f1' };
+    if (s >= 75) return { label: 'Good',      color: '#3b82f6' };
+    if (s >= 50) return { label: 'Fair',      color: '#f59e0b' };
+    return             { label: 'Poor',       color: '#ef4444' };
   };
 
   const status = getStatus(score);
@@ -51,49 +50,26 @@ export const QualityGauge: React.FC<QualityGaugeProps> = ({ scores }) => {
       </div>
 
       {/* ── Percentage Indicator ── */}
-      <div className="flex items-center gap-5 mb-6 px-2">
-        {/* Stacked digit block */}
-        <div className="relative select-none" style={{ width: 120, height: 90 }}>
-          {/* Ghost (previous) number — offset behind */}
+      <div className="flex items-end gap-1 mb-6 px-2 select-none">
+        <span
+          className="font-extrabold leading-none"
+          style={{
+            fontSize: 80,
+            color: status.color,
+            fontFamily: 'Inter, system-ui, sans-serif',
+            letterSpacing: '-4px',
+          }}
+        >
+          {scoreStr}
+        </span>
+        <div className="flex flex-col gap-0.5 pb-2">
           <span
-            className="absolute font-extrabold leading-none"
-            style={{
-              fontSize: 72,
-              color: status.ghost,
-              opacity: 0.35,
-              top: 12,
-              left: 10,
-              fontFamily: 'Inter, system-ui, sans-serif',
-              letterSpacing: '-3px',
-            }}
-          >
-            {ghostScore}
-          </span>
-          {/* Main (current) number — in front */}
-          <span
-            className="absolute font-extrabold leading-none"
-            style={{
-              fontSize: 72,
-              color: status.color,
-              top: 0,
-              left: 0,
-              fontFamily: 'Inter, system-ui, sans-serif',
-              letterSpacing: '-3px',
-            }}
-          >
-            {scoreStr}
-          </span>
-        </div>
-
-        {/* % symbol + label */}
-        <div className="flex flex-col gap-1">
-          <span
-            className="text-4xl font-extrabold leading-none"
-            style={{ color: status.color, fontFamily: 'Inter, system-ui, sans-serif' }}
+            className="font-extrabold leading-none"
+            style={{ fontSize: 36, color: status.color, fontFamily: 'Inter, system-ui, sans-serif' }}
           >
             %
           </span>
-          <span className="text-sm font-semibold text-slate-400 leading-tight whitespace-nowrap">
+          <span className="text-xs font-semibold text-slate-400 whitespace-nowrap">
             Quality Score
           </span>
         </div>
