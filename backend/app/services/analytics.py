@@ -9,12 +9,6 @@ import numpy as np
 import pandas as pd
 from typing import Dict, Any, List, Optional
 
-try:
-    import duckdb
-    HAS_DUCKDB = True
-except ImportError:
-    HAS_DUCKDB = False
-
 
 def _clean_df_records(df_in: pd.DataFrame, limit: int = 500) -> List[Dict[str, Any]]:
     """Converts DataFrame to JSON-compliant list of dicts, replacing NaN/Inf with None."""
@@ -38,48 +32,28 @@ def execute_sql_query(df: pd.DataFrame, query: str) -> Dict[str, Any]:
     if not clean_query:
         return {"success": False, "error": "Query string cannot be empty."}
 
-    if HAS_DUCKDB:
-        try:
-            con = duckdb.connect(database=":memory:")
-            con.register("dataset", df)
-            result_df = con.execute(clean_query).fetchdf()
-            con.close()
+    # Execute using DuckDB in-memory engine
+    try:
+        import duckdb
+        con = duckdb.connect(database=":memory:")
+        con.register("dataset", df)
+        result_df = con.execute(clean_query).fetchdf()
+        con.close()
 
-            # Format result
-            columns = result_df.columns.tolist()
-            result_data = _clean_df_records(result_df, 500)
+        columns = result_df.columns.tolist()
+        result_data = _clean_df_records(result_df, 500)
 
-            return {
-                "success": True,
-                "engine": "DuckDB In-Memory SQL",
-                "query": clean_query,
-                "row_count": len(result_df),
-                "columns": columns,
-                "data": result_data,
-                "message": f"Successfully returned {len(result_df)} rows."
-            }
-        except Exception as e:
-            return {"success": False, "error": f"SQL Execution Error: {str(e)}"}
-    else:
-        # Fallback to basic pandas query for simple SELECTs
-        try:
-            if "WHERE" in clean_query.upper():
-                where_clause = clean_query.split("WHERE")[1].split("GROUP")[0].split("ORDER")[0].strip()
-                result_df = df.query(where_clause)
-            else:
-                result_df = df.head(100)
-
-            return {
-                "success": True,
-                "engine": "Pandas Query Fallback",
-                "query": clean_query,
-                "row_count": len(result_df),
-                "columns": result_df.columns.tolist(),
-                "data": _clean_df_records(result_df, 100),
-                "message": f"Executed query fallback, returned {len(result_df)} rows."
-            }
-        except Exception as e:
-            return {"success": False, "error": f"Pandas Query Error: {str(e)}"}
+        return {
+            "success": True,
+            "engine": "DuckDB In-Memory SQL",
+            "query": clean_query,
+            "row_count": len(result_df),
+            "columns": columns,
+            "data": result_data,
+            "message": f"Successfully returned {len(result_df)} rows."
+        }
+    except Exception as e:
+        return {"success": False, "error": f"DuckDB SQL Execution Error: {str(e)}"}
 
 
 # -------------------------------------------------------------------
