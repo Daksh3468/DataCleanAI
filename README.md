@@ -44,7 +44,7 @@
   - Type casting & format coercion.
 - **📋 Multi-Format Executive Reports**:
   - Export clean datasets as `.csv` or formatted `.xlsx`.
-  - 1-click generation of self-contained **HTML Audit Reports** and **WeasyPrint PDF Reports** with before/after score gains.
+  - 1-click generation of self-contained **HTML Executive Audit Reports** with before/after score gains.
 - **📁 Persistent Audit History**: PostgreSQL / SQLite database integration tracking upload history, row metrics, and per-action transformation audit logs.
 
 ---
