@@ -7,6 +7,7 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.109.0-009688.svg?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com/)
 [![React](https://img.shields.io/badge/React-18.2.0-61DAFB.svg?style=for-the-badge&logo=react)](https://reactjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.2.2-3178C6.svg?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
+[![DuckDB](https://img.shields.io/badge/DuckDB-1.5.5-FFF000.svg?style=for-the-badge&logo=duckdb&logoColor=black)](https://duckdb.org/)
 [![Scikit-Learn](https://img.shields.io/badge/Scikit--Learn-1.3.0+-F7931E.svg?style=for-the-badge&logo=scikit-learn)](https://scikit-learn.org/)
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB.svg?style=for-the-badge&logo=python)](https://www.python.org/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?style=for-the-badge&logo=docker)](https://www.docker.com/)
@@ -28,26 +29,26 @@ Raw datasets arrive with missing values, duplicate records, type mismatches, out
 DataCleanAI is an **enterprise-grade automated data quality and cleaning engine** that transforms raw, messy tabular datasets into clean, validated, production-ready data in minutes — with a full ML-powered pipeline, visual quality scores, and auditable transformation history.
 
 ```
-Upload CSV/Excel  →  Profile & Score  →  Validate Rules  →  ML Clean  →  Export
+Upload CSV/Excel  →  Profile & 4D Health  →  Validate Custom Rules  →  ML Clean  →  Export
 ```
 
 ---
 
-## ✨ Features
+## ✨ Enterprise Features
 
 | Feature | Description |
 |---|---|
-| ⚡ **1 GB Upload Support** | Stream-process CSV, Excel, JSON datasets up to 1 GB |
-| 📊 **4D Quality Scoring** | Completeness, Validity, Uniqueness, Consistency scoring engine |
-| 🤖 **Isolation Forest** | Unsupervised ML multi-column outlier detection |
+| ⚡ **1 GB Upload Support** | Stream-process CSV, Excel (`.xlsx`, `.xls`), JSON datasets up to 1 GB |
+| 📊 **4D Health Scoring** | Completeness, Accuracy, Consistency, and Timeliness scoring engine |
+| 🤖 **Isolation Forest ML** | Unsupervised ML multi-column outlier and anomaly detection |
 | 🎯 **KNN & MICE Imputation** | Predict missing values using feature correlation ML models |
 | 🔗 **Fuzzy Deduplication** | RapidFuzz Levenshtein distance near-duplicate entity clustering |
-| 🔍 **PII Classifier** | Semantic detection of EMAIL, PHONE, SSN, CREDIT_CARD, IP fields |
-| 📏 **Custom Rules Builder** | Define business constraints (`Age >= 18`, `Salary > 0`, regex) |
-| 🦆 **DuckDB SQL Console** | Run raw SQL queries in-browser against your dataset |
-| 📋 **HTML Audit Reports** | Self-contained before/after quality comparison reports |
-| 🗂️ **Data Lineage Graph** | Visual versioning trail from Raw → Cleaned dataset |
-| 🐳 **Docker Ready** | One-command `docker compose up` deployment |
+| 🔍 **PII & Semantic Classifier** | Automatic detection of EMAIL, PHONE, SSN, CREDIT_CARD, IP fields |
+| 📏 **Custom Rules Builder** | Define custom business constraints (`Age >= 18`, `Salary > 0`, regex, list matching) |
+| 🦆 **Dynamic DuckDB SQL Console** | In-memory DuckDB engine with dynamic SQL presets tailored to uploaded dataset structure |
+| 📋 **HTML/PDF Audit Reports** | Executive before/after quality comparison dashboards and changelog exports |
+| 🧹 **Session Clean Start** | Fresh project initialization on load with automatic cache & history cleanup on new upload |
+| 🐳 **Docker Ready** | One-command `docker compose up` stack deployment |
 
 ---
 
@@ -59,15 +60,15 @@ Upload CSV/Excel  →  Profile & Score  →  Validate Rules  →  ML Clean  → 
 git clone https://github.com/Daksh3468/DataCleanAI.git
 cd DataCleanAI
 
-# Start entire stack (PostgreSQL + Backend + Frontend)
+# Start entire stack (Backend API + Frontend SPA)
 docker compose up --build
 ```
 
 | Service | URL |
 |---|---|
-| 🌐 Frontend | http://localhost |
-| ⚙️ Backend API | http://localhost:8000 |
-| 📖 API Docs (Swagger) | http://localhost:8000/docs |
+| 🌐 Frontend SPA | http://localhost:5173 |
+| ⚙️ Backend REST API | http://localhost:8000 |
+| 📖 Interactive API Docs | http://localhost:8000/docs |
 
 ---
 
@@ -80,7 +81,7 @@ git clone https://github.com/Daksh3468/DataCleanAI.git
 cd DataCleanAI
 ```
 
-**1. Backend**
+**1. Backend (FastAPI + DuckDB + Scikit-Learn)**
 ```bash
 cd backend
 cp ../.env.example ../.env
@@ -90,7 +91,7 @@ python run.py
 # → http://localhost:8000
 ```
 
-**2. Frontend**
+**2. Frontend (React + TypeScript + Vite)**
 ```bash
 cd frontend
 npm install
@@ -100,9 +101,7 @@ npm run dev
 
 ---
 
-
-
-## 🧪 Testing
+## 🧪 Verification & Testing
 
 ```bash
 # Backend — pytest suite
@@ -114,16 +113,17 @@ cd frontend
 npm run build
 ```
 
-**Current test coverage:** 8/8 backend integration tests passing ✅
+**Current test status:** All integration tests passing ✅
 
 ---
 
-## 🤝 Contributing
+## 📄 Compliance & Legal
 
-Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
+- [Privacy Policy](http://localhost:5173/privacy)
+- [Terms of Service](http://localhost:5173/terms)
 
 ---
 
 <div align="center">
-  <strong>Built by <a href="https://github.com/Daksh3468">Daksh</a></strong>
+  © 2026 <strong>DataCleanAI Inc.</strong> All rights reserved. • Built by <a href="https://github.com/Daksh3468">Daksh</a>
 </div>
