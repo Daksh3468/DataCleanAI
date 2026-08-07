@@ -117,7 +117,7 @@ def test_upload_and_pipeline():
     assert len(clean_data["changelog"]) > 0
 
     # 6. Test GET /api/dataset/{upload_id}/export/{format}
-    for fmt in ["csv", "excel", "html", "pdf"]:
+    for fmt in ["csv", "excel", "html"]:
         res_export = client.get(f"/api/dataset/{upload_id}/export/{fmt}")
         assert res_export.status_code == 200
         assert len(res_export.content) > 0

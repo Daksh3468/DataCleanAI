@@ -37,7 +37,7 @@ export const ReportPage: React.FC<ReportPageProps> = ({ dataset }) => {
     { dimension: 'Timeliness', PreClean: 76.9, PostClean: 95.5 },
   ];
 
-  const handleDownload = (format: 'csv' | 'xlsx' | 'html' | 'pdf') => {
+  const handleDownload = (format: 'csv' | 'xlsx' | 'html') => {
     const url = api.getExportUrl(format, uploadId);
     window.open(url, '_blank');
   };
@@ -115,7 +115,7 @@ export const ReportPage: React.FC<ReportPageProps> = ({ dataset }) => {
           Select your preferred export format to download cleaned datasets or share executive summary documentation.
         </p>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
           {/* CSV */}
           <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-3 hover:border-indigo-300 transition-all shadow-xs">
             <div className="flex items-center space-x-3">
@@ -173,26 +173,6 @@ export const ReportPage: React.FC<ReportPageProps> = ({ dataset }) => {
             >
               <Download className="w-3.5 h-3.5 text-amber-600" />
               <span>Download HTML</span>
-            </button>
-          </div>
-
-          {/* PDF */}
-          <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-3 hover:border-rose-300 transition-all shadow-xs">
-            <div className="flex items-center space-x-3">
-              <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-600">
-                <FileText className="w-6 h-6" />
-              </div>
-              <div>
-                <h4 className="font-bold text-slate-900 text-sm">PDF Executive Brief</h4>
-                <p className="text-[11px] text-slate-500 font-medium">Print-ready document</p>
-              </div>
-            </div>
-            <button
-              onClick={() => handleDownload('pdf')}
-              className="w-full py-2 px-3 rounded-xl text-xs font-bold text-rose-700 bg-rose-50 border border-rose-200 hover:bg-rose-100 transition-all flex items-center justify-center space-x-1.5 shadow-xs"
-            >
-              <Download className="w-3.5 h-3.5 text-rose-600" />
-              <span>Download PDF</span>
             </button>
           </div>
         </div>

@@ -1,10 +1,9 @@
 """
 Unit & Integration Tests for DataCleanAI Export Router.
-Tests CSV, Excel, HTML, and PDF file download responses.
+Tests CSV, Excel, and HTML file download responses.
 """
 
 import pytest
-import io
 import pandas as pd
 from fastapi.testclient import TestClient
 from app.main import app
@@ -47,12 +46,6 @@ def test_export_html_report_query():
     assert response.status_code == 200
     assert response.headers["content-type"] == "text/html; charset=utf-8"
     assert "<html" in response.text.lower()
-
-
-def test_export_pdf_report_query():
-    response = client.get("/api/export/pdf?upload_id=upl_test123")
-    assert response.status_code == 200
-    assert "attachment" in response.headers["content-disposition"]
 
 
 def test_export_dataset_path():

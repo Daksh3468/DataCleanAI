@@ -265,7 +265,7 @@ export const api = {
   },
 
   // 6. Export Links
-  getExportUrl: (format: 'csv' | 'xlsx' | 'html' | 'pdf', uploadId?: string): string => {
+  getExportUrl: (format: 'csv' | 'xlsx' | 'html', uploadId?: string): string => {
     return `${API_BASE_URL}/export/${format}?upload_id=${uploadId || MOCK_DATASET_ID}`;
   },
 

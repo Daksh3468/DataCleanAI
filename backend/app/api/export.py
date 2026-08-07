@@ -29,10 +29,10 @@ def _build_export_response(
 ) -> Response:
     """Helper to generate export response for CSV, Excel, HTML, or PDF formats."""
     fmt = fmt.strip().lower()
-    if fmt not in ["csv", "excel", "xlsx", "html", "pdf"]:
+    if fmt not in ["csv", "excel", "xlsx", "html"]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Unsupported export format. Supported formats: csv, excel, xlsx, html, pdf."
+            detail="Unsupported export format. Supported formats: csv, excel, xlsx, html."
         )
 
     base_name = filename.rsplit(".", 1)[0] if "." in filename else filename
@@ -58,8 +58,8 @@ def _build_export_response(
             headers={"Content-Disposition": f'attachment; filename="{base_name}_cleaned.xlsx"'}
         )
 
-    # 3. Export HTML or PDF Executive Report
-    elif fmt in ["html", "pdf"]:
+    # 3. Export HTML Executive Report
+    elif fmt == "html":
         try:
             df_original = dataset_store.get_dataset(upload_id, original=True)
         except Exception:
@@ -76,7 +76,6 @@ def _build_export_response(
         changelog = []
         if db and upload_id:
             try:
-                # Try finding by string upload_id or int id
                 db_logs = []
                 if upload_id.isdigit():
                     db_logs = db.query(CleaningLog).filter(CleaningLog.upload_id == int(upload_id)).all()
@@ -112,19 +111,11 @@ def _build_export_response(
             changelog=changelog
         )
 
-        if fmt == "html":
-            return Response(
-                content=html_content.encode("utf-8"),
-                media_type="text/html",
-                headers={"Content-Disposition": f'attachment; filename="{base_name}_quality_report.html"'}
-            )
-        else:
-            pdf_bytes = generate_pdf_report(html_content)
-            return Response(
-                content=pdf_bytes,
-                media_type="application/pdf",
-                headers={"Content-Disposition": f'attachment; filename="{base_name}_quality_report.pdf"'}
-            )
+        return Response(
+            content=html_content.encode("utf-8"),
+            media_type="text/html",
+            headers={"Content-Disposition": f'attachment; filename="{base_name}_quality_report.html"'}
+        )
 
 
 @router.get("/export/{format}")
