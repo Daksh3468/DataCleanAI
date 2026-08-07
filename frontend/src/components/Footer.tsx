@@ -153,7 +153,7 @@ export const Footer: React.FC = () => {
       <div className="border-t border-slate-800 bg-slate-950 py-6 px-4 sm:px-6 lg:px-8 text-xs text-slate-500">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
           <p className="font-medium">
-            © {new Date().getFullYear()} DataCleanAI Inc. All rights reserved. Enterprise Data Quality Platform v2.4.
+            © {new Date().getFullYear()} DataCleanAI. All rights reserved.
           </p>
           <div className="flex items-center space-x-4">
             <span className="flex items-center space-x-1 font-medium">
