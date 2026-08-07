@@ -22,6 +22,7 @@ import {
 } from 'recharts';
 import { api } from '../services/api';
 import { Dataset } from '../types';
+import { DataLineage } from '../components/DataLineage';
 
 interface ReportPageProps {
   dataset?: Dataset | null;
@@ -177,6 +178,9 @@ export const ReportPage: React.FC<ReportPageProps> = ({ dataset }) => {
           </div>
         </div>
       </div>
+
+      {/* Data Lineage & Versioning Graph */}
+      <DataLineage dataset={dataset} />
 
       {/* Key Remediation Highlights Summary */}
       <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
